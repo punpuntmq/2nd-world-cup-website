@@ -1,0 +1,152 @@
+{
+  "filters": {
+    "season": "2026"
+  },
+  "area": {
+    "id": 2267,
+    "name": "World",
+    "code": "INT",
+    "flag": ""
+  },
+  "competition": {
+    "id": 2000,
+    "name": "FIFA World Cup",
+    "code": "WC",
+    "type": "CUP",
+    "emblem": "https://crests.football-data.org/qatar.png"
+  },
+  "season": {
+    "id": 2026,
+    "startDate": "2026-06-10",
+    "endDate": "2026-07-19",
+    "currentMatchday": 1,
+    "stages": ["GROUP_STAGE"]
+  },
+  "standings": [
+    {
+      "stage": "GROUP_STAGE",
+      "type": "TOTAL",
+      "group": "GROUP_A",
+      "table": [
+        {
+          "position": 1,
+          "team": { "id": 1, "name": "Brazil", "shortName": "Brazil", "tla": "BRA", "crest": "https://flagcdn.com/br.svg" },
+          "playedGames": 1,
+          "form": "W",
+          "won": 1,
+          "draw": 0,
+          "lost": 0,
+          "points": 3,
+          "goalsFor": 3,
+          "goalsAgainst": 0,
+          "goalDifference": 3
+        },
+        {
+          "position": 2,
+          "team": { "id": 7, "name": "Uruguay", "shortName": "Uruguay", "tla": "URU", "crest": "https://flagcdn.com/uy.svg" },
+          "playedGames": 1,
+          "form": "W",
+          "won": 1,
+          "draw": 0,
+          "lost": 0,
+          "points": 3,
+          "goalsFor": 2,
+          "goalsAgainst": 1,
+          "goalDifference": 1
+        },
+        {
+          "position": 3,
+          "team": { "id": 2, "name": "Canada", "shortName": "Canada", "tla": "CAN", "crest": "https://flagcdn.com/ca.svg" },
+          "playedGames": 1,
+          "form": "L",
+          "won": 0,
+          "draw": 0,
+          "lost": 1,
+          "points": 0,
+          "goalsFor": 1,
+          "goalsAgainst": 2,
+          "goalDifference": -1
+        },
+        {
+          "position": 4,
+          "team": { "id": 8, "name": "Morocco", "shortName": "Morocco", "tla": "MAR", "crest": "https://flagcdn.com/ma.svg" },
+          "playedGames": 1,
+          "form": "L",
+          "won": 0,
+          "draw": 0,
+          "lost": 1,
+          "points": 0,
+          "goalsFor": 0,
+          "goalsAgainst": 3,
+          "goalDifference": -3
+        }
+      ]
+    },
+    {
+      "stage": "GROUP_STAGE",
+      "type": "TOTAL",
+      "group": "GROUP_B",
+      "table": [
+        {
+          "position": 1,
+          "team": { "id": 5, "name": "Argentina", "shortName": "Argentina", "tla": "ARG", "crest": "https://flagcdn.com/ar.svg" },
+          "playedGames": 1,
+          "form": "W",
+          "won": 1,
+          "draw": 0,
+          "lost": 0,
+          "points": 3,
+          "goalsFor": 2,
+          "goalsAgainst": 0,
+          "goalDifference": 2
+        },
+        {
+          "position": 2,
+          "team": { "id": 6, "name": "Mexico", "shortName": "Mexico", "tla": "MEX", "crest": "https://flagcdn.com/mx.svg" },
+          "playedGames": 1,
+          "form": "L",
+          "won": 0,
+          "draw": 0,
+          "lost": 1,
+          "points": 0,
+          "goalsFor": 0,
+          "goalsAgainst": 2,
+          "goalDifference": -2
+        }
+      ]
+    },
+    {
+      "stage": "GROUP_STAGE",
+      "type": "TOTAL",
+      "group": "GROUP_C",
+      "table": [
+        {
+          "position": 1,
+          "team": { "id": 3, "name": "France", "shortName": "France", "tla": "FRA", "crest": "https://flagcdn.com/fr.svg" },
+          "playedGames": 1,
+          "form": "W",
+          "won": 1,
+          "draw": 0,
+          "lost": 0,
+          "points": 3,
+          "goalsFor": 1,
+          "goalsAgainst": 0,
+          "goalDifference": 1
+        },
+        {
+          "position": 2,
+          "team": { "id": 4, "name": "United States", "shortName": "USA", "tla": "USA", "crest": "https://flagcdn.com/us.svg" },
+          "playedGames": 1,
+          "form": "L",
+          "won": 0,
+          "draw": 0,
+          "lost": 1,
+          "points": 0,
+          "goalsFor": 0,
+          "goalsAgainst": 1,
+          "goalDifference": -1
+        }
+      ]
+    }
+  ]
+}

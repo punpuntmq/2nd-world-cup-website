@@ -1,0 +1,236 @@
+{
+  "filters": {
+    "season": "2026"
+  },
+  "resultSet": {
+    "count": 9,
+    "first": "2026-06-10",
+    "last": "2026-06-18",
+    "played": 3
+  },
+  "competition": {
+    "id": 2000,
+    "name": "FIFA World Cup",
+    "code": "WC",
+    "type": "CUP",
+    "emblem": "https://crests.football-data.org/qatar.png"
+  },
+  "matches": [
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 1, "stages": ["GROUP_STAGE"] },
+      "id": 900001,
+      "utcDate": "2026-06-10T12:00:00Z",
+      "status": "IN_PLAY",
+      "minute": 67,
+      "injuryTime": null,
+      "attendance": 84500,
+      "venue": "Rose Bowl, Los Angeles",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_C",
+      "lastUpdated": "2026-06-10T13:07:00Z",
+      "homeTeam": { "id": 3, "name": "France", "shortName": "France", "tla": "FRA", "crest": "https://flagcdn.com/fr.svg" },
+      "awayTeam": { "id": 4, "name": "United States", "shortName": "USA", "tla": "USA", "crest": "https://flagcdn.com/us.svg" },
+      "score": {
+        "winner": null,
+        "duration": "REGULAR",
+        "fullTime": { "home": 1, "away": 0 },
+        "halfTime": { "home": 1, "away": 0 }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 1, "stages": ["GROUP_STAGE"] },
+      "id": 900002,
+      "utcDate": "2026-06-10T15:00:00Z",
+      "status": "TIMED",
+      "minute": null,
+      "injuryTime": null,
+      "attendance": null,
+      "venue": "MetLife Stadium, New Jersey",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_B",
+      "lastUpdated": "2026-06-10T10:00:00Z",
+      "homeTeam": { "id": 5, "name": "Argentina", "shortName": "Argentina", "tla": "ARG", "crest": "https://flagcdn.com/ar.svg" },
+      "awayTeam": { "id": 6, "name": "Mexico", "shortName": "Mexico", "tla": "MEX", "crest": "https://flagcdn.com/mx.svg" },
+      "score": {
+        "winner": null,
+        "duration": "REGULAR",
+        "fullTime": { "home": null, "away": null },
+        "halfTime": { "home": null, "away": null }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 1, "stages": ["GROUP_STAGE"] },
+      "id": 900003,
+      "utcDate": "2026-06-11T18:00:00Z",
+      "status": "SCHEDULED",
+      "minute": null,
+      "injuryTime": null,
+      "attendance": null,
+      "venue": "BC Place, Vancouver",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_A",
+      "lastUpdated": "2026-06-10T10:00:00Z",
+      "homeTeam": { "id": 1, "name": "Brazil", "shortName": "Brazil", "tla": "BRA", "crest": "https://flagcdn.com/br.svg" },
+      "awayTeam": { "id": 2, "name": "Canada", "shortName": "Canada", "tla": "CAN", "crest": "https://flagcdn.com/ca.svg" },
+      "score": {
+        "winner": null,
+        "duration": "REGULAR",
+        "fullTime": { "home": null, "away": null },
+        "halfTime": { "home": null, "away": null }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 1, "stages": ["GROUP_STAGE"] },
+      "id": 900004,
+      "utcDate": "2026-06-12T20:00:00Z",
+      "status": "SCHEDULED",
+      "minute": null,
+      "injuryTime": null,
+      "attendance": null,
+      "venue": "Hard Rock Stadium, Miami",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_A",
+      "lastUpdated": "2026-06-10T10:00:00Z",
+      "homeTeam": { "id": 7, "name": "Uruguay", "shortName": "Uruguay", "tla": "URU", "crest": "https://flagcdn.com/uy.svg" },
+      "awayTeam": { "id": 8, "name": "Morocco", "shortName": "Morocco", "tla": "MAR", "crest": "https://flagcdn.com/ma.svg" },
+      "score": {
+        "winner": null,
+        "duration": "REGULAR",
+        "fullTime": { "home": null, "away": null },
+        "halfTime": { "home": null, "away": null }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 2, "stages": ["GROUP_STAGE"] },
+      "id": 900005,
+      "utcDate": "2026-06-13T17:00:00Z",
+      "status": "POSTPONED",
+      "minute": null,
+      "injuryTime": null,
+      "attendance": null,
+      "venue": "Estadio Azteca, Mexico City",
+      "matchday": 2,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_C",
+      "lastUpdated": "2026-06-10T10:05:00Z",
+      "homeTeam": { "id": 3, "name": "France", "shortName": "France", "tla": "FRA", "crest": "https://flagcdn.com/fr.svg" },
+      "awayTeam": { "id": 6, "name": "Mexico", "shortName": "Mexico", "tla": "MEX", "crest": "https://flagcdn.com/mx.svg" },
+      "score": {
+        "winner": null,
+        "duration": "REGULAR",
+        "fullTime": { "home": null, "away": null },
+        "halfTime": { "home": null, "away": null }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 0, "stages": ["GROUP_STAGE"] },
+      "id": 900006,
+      "utcDate": "2026-06-09T12:00:00Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "injuryTime": 4,
+      "attendance": 71500,
+      "venue": "AT&T Stadium, Dallas",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_A",
+      "lastUpdated": "2026-06-09T14:02:00Z",
+      "homeTeam": { "id": 1, "name": "Brazil", "shortName": "Brazil", "tla": "BRA", "crest": "https://flagcdn.com/br.svg" },
+      "awayTeam": { "id": 8, "name": "Morocco", "shortName": "Morocco", "tla": "MAR", "crest": "https://flagcdn.com/ma.svg" },
+      "score": {
+        "winner": "HOME_TEAM",
+        "duration": "REGULAR",
+        "fullTime": { "home": 3, "away": 0 },
+        "halfTime": { "home": 1, "away": 0 }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 0, "stages": ["GROUP_STAGE"] },
+      "id": 900007,
+      "utcDate": "2026-06-09T16:00:00Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "injuryTime": 5,
+      "attendance": 62000,
+      "venue": "BMO Field, Toronto",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_A",
+      "lastUpdated": "2026-06-09T18:04:00Z",
+      "homeTeam": { "id": 7, "name": "Uruguay", "shortName": "Uruguay", "tla": "URU", "crest": "https://flagcdn.com/uy.svg" },
+      "awayTeam": { "id": 2, "name": "Canada", "shortName": "Canada", "tla": "CAN", "crest": "https://flagcdn.com/ca.svg" },
+      "score": {
+        "winner": "HOME_TEAM",
+        "duration": "REGULAR",
+        "fullTime": { "home": 2, "away": 1 },
+        "halfTime": { "home": 1, "away": 1 }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 0, "stages": ["GROUP_STAGE"] },
+      "id": 900008,
+      "utcDate": "2026-06-08T16:00:00Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "injuryTime": 3,
+      "attendance": 80200,
+      "venue": "Mercedes-Benz Stadium, Atlanta",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_B",
+      "lastUpdated": "2026-06-08T18:01:00Z",
+      "homeTeam": { "id": 5, "name": "Argentina", "shortName": "Argentina", "tla": "ARG", "crest": "https://flagcdn.com/ar.svg" },
+      "awayTeam": { "id": 6, "name": "Mexico", "shortName": "Mexico", "tla": "MEX", "crest": "https://flagcdn.com/mx.svg" },
+      "score": {
+        "winner": "HOME_TEAM",
+        "duration": "REGULAR",
+        "fullTime": { "home": 2, "away": 0 },
+        "halfTime": { "home": 1, "away": 0 }
+      }
+    },
+    {
+      "area": { "id": 2267, "name": "World", "code": "INT", "flag": "" },
+      "competition": { "id": 2000, "name": "FIFA World Cup", "code": "WC", "type": "CUP", "emblem": "https://crests.football-data.org/qatar.png" },
+      "season": { "id": 2026, "startDate": "2026-06-10", "endDate": "2026-07-19", "currentMatchday": 0, "stages": ["GROUP_STAGE"] },
+      "id": 900009,
+      "utcDate": "2026-06-08T20:00:00Z",
+      "status": "CANCELLED",
+      "minute": null,
+      "injuryTime": null,
+      "attendance": null,
+      "venue": "Levi's Stadium, Santa Clara",
+      "matchday": 1,
+      "stage": "GROUP_STAGE",
+      "group": "GROUP_C",
+      "lastUpdated": "2026-06-08T21:10:00Z",
+      "homeTeam": { "id": 4, "name": "United States", "shortName": "USA", "tla": "USA", "crest": "https://flagcdn.com/us.svg" },
+      "awayTeam": { "id": 5, "name": "Argentina", "shortName": "Argentina", "tla": "ARG", "crest": "https://flagcdn.com/ar.svg" },
+      "score": {
+        "winner": null,
+        "duration": "REGULAR",
+        "fullTime": { "home": null, "away": null },
+        "halfTime": { "home": null, "away": null }
+      }
+    }
+  ]
+}

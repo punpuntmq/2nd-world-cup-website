@@ -1,0 +1,198 @@
+{
+  "count": 8,
+  "filters": {
+    "season": "2026"
+  },
+  "competition": {
+    "id": 2000,
+    "name": "FIFA World Cup",
+    "code": "WC",
+    "type": "CUP",
+    "emblem": "https://crests.football-data.org/qatar.png"
+  },
+  "season": {
+    "id": 2026,
+    "startDate": "2026-06-10",
+    "endDate": "2026-07-19",
+    "currentMatchday": 1,
+    "stages": ["GROUP_STAGE"]
+  },
+  "teams": [
+    {
+      "id": 1,
+      "area": { "id": 2032, "name": "Brazil", "code": "BRA", "flag": "https://flagcdn.com/br.svg" },
+      "name": "Brazil",
+      "shortName": "Brazil",
+      "tla": "BRA",
+      "crest": "https://flagcdn.com/br.svg",
+      "address": "Rio de Janeiro",
+      "website": "https://www.cbf.com.br",
+      "founded": 1914,
+      "clubColors": "Yellow / Green / Blue",
+      "venue": "AT&T Stadium, Dallas",
+      "coach": { "id": 101, "name": "Dorival Junior", "nationality": "Brazil" },
+      "squad": [
+        { "id": 1001, "name": "Alisson", "position": "Goalkeeper", "nationality": "Brazil", "shirtNumber": 1 },
+        { "id": 1002, "name": "Marquinhos", "position": "Defender", "nationality": "Brazil", "shirtNumber": 4 },
+        { "id": 1003, "name": "Bruno Guimaraes", "position": "Midfielder", "nationality": "Brazil", "shirtNumber": 8 },
+        { "id": 1004, "name": "Vinicius Junior", "position": "Attacker", "nationality": "Brazil", "shirtNumber": 7 },
+        { "id": 1005, "name": "Rodrygo", "position": "Attacker", "nationality": "Brazil", "shirtNumber": 10 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "area": { "id": 2035, "name": "Canada", "code": "CAN", "flag": "https://flagcdn.com/ca.svg" },
+      "name": "Canada",
+      "shortName": "Canada",
+      "tla": "CAN",
+      "crest": "https://flagcdn.com/ca.svg",
+      "address": "Ottawa",
+      "website": "https://canadasoccer.com",
+      "founded": 1912,
+      "clubColors": "Red / White",
+      "venue": "BC Place, Vancouver",
+      "coach": { "id": 102, "name": "Jesse Marsch", "nationality": "United States" },
+      "squad": [
+        { "id": 2001, "name": "Milan Borjan", "position": "Goalkeeper", "nationality": "Canada", "shirtNumber": 18 },
+        { "id": 2002, "name": "Alphonso Davies", "position": "Defender", "nationality": "Canada", "shirtNumber": 19 },
+        { "id": 2003, "name": "Stephen Eustaquio", "position": "Midfielder", "nationality": "Canada", "shirtNumber": 7 },
+        { "id": 2004, "name": "Jonathan David", "position": "Attacker", "nationality": "Canada", "shirtNumber": 20 },
+        { "id": 2005, "name": "Cyle Larin", "position": "Attacker", "nationality": "Canada", "shirtNumber": 17 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    },
+    {
+      "id": 3,
+      "area": { "id": 2081, "name": "France", "code": "FRA", "flag": "https://flagcdn.com/fr.svg" },
+      "name": "France",
+      "shortName": "France",
+      "tla": "FRA",
+      "crest": "https://flagcdn.com/fr.svg",
+      "address": "Paris",
+      "website": "https://www.fff.fr",
+      "founded": 1919,
+      "clubColors": "Blue / White / Red",
+      "venue": "Rose Bowl, Los Angeles",
+      "coach": { "id": 103, "name": "Didier Deschamps", "nationality": "France" },
+      "squad": [
+        { "id": 3001, "name": "Mike Maignan", "position": "Goalkeeper", "nationality": "France", "shirtNumber": 16 },
+        { "id": 3002, "name": "William Saliba", "position": "Defender", "nationality": "France", "shirtNumber": 17 },
+        { "id": 3003, "name": "Aurelien Tchouameni", "position": "Midfielder", "nationality": "France", "shirtNumber": 8 },
+        { "id": 3004, "name": "Antoine Griezmann", "position": "Midfielder", "nationality": "France", "shirtNumber": 7 },
+        { "id": 3005, "name": "Kylian Mbappe", "position": "Attacker", "nationality": "France", "shirtNumber": 10 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    },
+    {
+      "id": 4,
+      "area": { "id": 2224, "name": "United States", "code": "USA", "flag": "https://flagcdn.com/us.svg" },
+      "name": "United States",
+      "shortName": "USA",
+      "tla": "USA",
+      "crest": "https://flagcdn.com/us.svg",
+      "address": "Chicago",
+      "website": "https://www.ussoccer.com",
+      "founded": 1913,
+      "clubColors": "Navy / Red / White",
+      "venue": "Levi's Stadium, Santa Clara",
+      "coach": { "id": 104, "name": "Mauricio Pochettino", "nationality": "Argentina" },
+      "squad": [
+        { "id": 4001, "name": "Matt Turner", "position": "Goalkeeper", "nationality": "United States", "shirtNumber": 1 },
+        { "id": 4002, "name": "Antonee Robinson", "position": "Defender", "nationality": "United States", "shirtNumber": 5 },
+        { "id": 4003, "name": "Weston McKennie", "position": "Midfielder", "nationality": "United States", "shirtNumber": 8 },
+        { "id": 4004, "name": "Christian Pulisic", "position": "Attacker", "nationality": "United States", "shirtNumber": 10 },
+        { "id": 4005, "name": "Folarin Balogun", "position": "Attacker", "nationality": "United States", "shirtNumber": 20 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    },
+    {
+      "id": 5,
+      "area": { "id": 2011, "name": "Argentina", "code": "ARG", "flag": "https://flagcdn.com/ar.svg" },
+      "name": "Argentina",
+      "shortName": "Argentina",
+      "tla": "ARG",
+      "crest": "https://flagcdn.com/ar.svg",
+      "address": "Buenos Aires",
+      "website": "https://www.afa.com.ar",
+      "founded": 1893,
+      "clubColors": "Sky Blue / White",
+      "venue": "Mercedes-Benz Stadium, Atlanta",
+      "coach": { "id": 105, "name": "Lionel Scaloni", "nationality": "Argentina" },
+      "squad": [
+        { "id": 5001, "name": "Emiliano Martinez", "position": "Goalkeeper", "nationality": "Argentina", "shirtNumber": 23 },
+        { "id": 5002, "name": "Cristian Romero", "position": "Defender", "nationality": "Argentina", "shirtNumber": 13 },
+        { "id": 5003, "name": "Enzo Fernandez", "position": "Midfielder", "nationality": "Argentina", "shirtNumber": 24 },
+        { "id": 5004, "name": "Lionel Messi", "position": "Attacker", "nationality": "Argentina", "shirtNumber": 10 },
+        { "id": 5005, "name": "Julian Alvarez", "position": "Attacker", "nationality": "Argentina", "shirtNumber": 9 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    },
+    {
+      "id": 6,
+      "area": { "id": 2106, "name": "Mexico", "code": "MEX", "flag": "https://flagcdn.com/mx.svg" },
+      "name": "Mexico",
+      "shortName": "Mexico",
+      "tla": "MEX",
+      "crest": "https://flagcdn.com/mx.svg",
+      "address": "Mexico City",
+      "website": "https://miseleccion.mx",
+      "founded": 1927,
+      "clubColors": "Green / White / Red",
+      "venue": "Estadio Azteca, Mexico City",
+      "coach": { "id": 106, "name": "Javier Aguirre", "nationality": "Mexico" },
+      "squad": [
+        { "id": 6001, "name": "Guillermo Ochoa", "position": "Goalkeeper", "nationality": "Mexico", "shirtNumber": 13 },
+        { "id": 6002, "name": "Cesar Montes", "position": "Defender", "nationality": "Mexico", "shirtNumber": 3 },
+        { "id": 6003, "name": "Edson Alvarez", "position": "Midfielder", "nationality": "Mexico", "shirtNumber": 4 },
+        { "id": 6004, "name": "Hirving Lozano", "position": "Attacker", "nationality": "Mexico", "shirtNumber": 22 },
+        { "id": 6005, "name": "Santiago Gimenez", "position": "Attacker", "nationality": "Mexico", "shirtNumber": 11 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    },
+    {
+      "id": 7,
+      "area": { "id": 2257, "name": "Uruguay", "code": "URU", "flag": "https://flagcdn.com/uy.svg" },
+      "name": "Uruguay",
+      "shortName": "Uruguay",
+      "tla": "URU",
+      "crest": "https://flagcdn.com/uy.svg",
+      "address": "Montevideo",
+      "website": "https://www.auf.org.uy",
+      "founded": 1900,
+      "clubColors": "Sky Blue / Black / White",
+      "venue": "Hard Rock Stadium, Miami",
+      "coach": { "id": 107, "name": "Marcelo Bielsa", "nationality": "Argentina" },
+      "squad": [
+        { "id": 7001, "name": "Sergio Rochet", "position": "Goalkeeper", "nationality": "Uruguay", "shirtNumber": 1 },
+        { "id": 7002, "name": "Ronald Araujo", "position": "Defender", "nationality": "Uruguay", "shirtNumber": 4 },
+        { "id": 7003, "name": "Federico Valverde", "position": "Midfielder", "nationality": "Uruguay", "shirtNumber": 15 },
+        { "id": 7004, "name": "Darwin Nunez", "position": "Attacker", "nationality": "Uruguay", "shirtNumber": 19 },
+        { "id": 7005, "name": "Facundo Pellistri", "position": "Attacker", "nationality": "Uruguay", "shirtNumber": 11 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    },
+    {
+      "id": 8,
+      "area": { "id": 2109, "name": "Morocco", "code": "MAR", "flag": "https://flagcdn.com/ma.svg" },
+      "name": "Morocco",
+      "shortName": "Morocco",
+      "tla": "MAR",
+      "crest": "https://flagcdn.com/ma.svg",
+      "address": "Rabat",
+      "website": "https://frmf.ma",
+      "founded": 1955,
+      "clubColors": "Red / Green",
+      "venue": "AT&T Stadium, Dallas",
+      "coach": { "id": 108, "name": "Walid Regragui", "nationality": "Morocco" },
+      "squad": [
+        { "id": 8001, "name": "Yassine Bounou", "position": "Goalkeeper", "nationality": "Morocco", "shirtNumber": 1 },
+        { "id": 8002, "name": "Achraf Hakimi", "position": "Defender", "nationality": "Morocco", "shirtNumber": 2 },
+        { "id": 8003, "name": "Sofyan Amrabat", "position": "Midfielder", "nationality": "Morocco", "shirtNumber": 4 },
+        { "id": 8004, "name": "Hakim Ziyech", "position": "Attacker", "nationality": "Morocco", "shirtNumber": 7 },
+        { "id": 8005, "name": "Youssef En-Nesyri", "position": "Attacker", "nationality": "Morocco", "shirtNumber": 19 }
+      ],
+      "lastUpdated": "2026-06-10T09:00:00Z"
+    }
+  ]
+}
