@@ -10,13 +10,15 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type ClientOptions struct {
 	BaseURL         string
-	Token           string
+	Token           []string
 	CompetitionCode string
 	Season          string
 	FakeDir         string
@@ -25,15 +27,42 @@ type ClientOptions struct {
 
 type Client struct {
 	baseURL         string
-	token           string
+	tokens          []string
 	competitionCode string
 	season          string
 	fakeDir         string
 	forceFake       bool
 	httpClient      *http.Client
+	token_use       string
+	mu              sync.Mutex
+}
+
+func (c *Client) currentToken() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.token_use != "" {
+		return c.token_use
+	}
+
+	c.token_use = c.tokens[0]
+	return c.token_use
+}
+
+func (c *Client) rotateToken() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for i, token := range c.tokens {
+		if token == c.token_use {
+			c.token_use = c.tokens[(i+1)%len(c.tokens)]
+			return
+		}
+	}
 }
 
 func NewClient(options ClientOptions) *Client {
+
 	baseURL := strings.TrimRight(options.BaseURL, "/")
 	if baseURL == "" {
 		baseURL = "https://api.football-data.org/v4"
@@ -43,21 +72,45 @@ func NewClient(options ClientOptions) *Client {
 		competitionCode = "WC"
 	}
 
+	season := strings.TrimSpace(options.Season)
+	if season == "" {
+		season = strconv.Itoa(time.Now().Year())
+	}
+
+	tokens := options.Token
+	tokenUse := ""
+	if len(tokens) != 0 {
+		tokenUse = tokens[0]
+	}
+
 	return &Client{
 		baseURL:         baseURL,
-		token:           strings.TrimSpace(options.Token),
+		tokens:          tokens,
 		competitionCode: competitionCode,
-		season:          strings.TrimSpace(options.Season),
+		season:          season,
 		fakeDir:         options.FakeDir,
 		forceFake:       options.ForceFake,
 		httpClient: &http.Client{
 			Timeout: 12 * time.Second,
 		},
+		token_use: tokenUse,
 	}
 }
 
+type apiError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *apiError) Error() string {
+	if e.Body != "" {
+		return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Body)
+	}
+	return fmt.Sprintf("HTTP %d", e.StatusCode)
+}
+
 func (c *Client) Fetch(ctx context.Context) (RawState, error) {
-	if c.forceFake || c.token == "" {
+	if c.forceFake || len(c.tokens) == 0 {
 		return c.FetchFake(ctx)
 	}
 
@@ -121,15 +174,16 @@ func (c *Client) competitionEndpoint(resource string) string {
 	return endpoint + "?" + values.Encode()
 }
 
-func (c *Client) getJSON(ctx context.Context, endpoint string, target interface{}) error {
-	endpoint = strings.TrimPrefix(endpoint, "/")
-	requestURL := c.baseURL + "/" + endpoint
+func (c *Client) tryRequest(ctx context.Context, requestURL string, target interface{}, token string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return err
 	}
+
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-Auth-Token", c.token)
+	if token != "" {
+		req.Header.Set("X-Auth-Token", token)
+	}
 	req.Header.Set("X-Unfold-Lineups", "true")
 	req.Header.Set("X-Unfold-Bookings", "true")
 	req.Header.Set("X-Unfold-Subs", "true")
@@ -145,10 +199,37 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, target interface{
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
 		return fmt.Errorf("%s returned HTTP %d: %s", requestURL, resp.StatusCode, strings.TrimSpace(string(body)))
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
 		return fmt.Errorf("decode %s: %w", requestURL, err)
 	}
+
 	return nil
+}
+
+func (c *Client) getJSON(ctx context.Context, endpoint string, target interface{}) error {
+	endpoint = strings.TrimPrefix(endpoint, "/")
+	requestURL := c.baseURL + "/" + endpoint
+
+	for i := 0; i < len(c.tokens); i++ {
+		c.mu.Lock()
+		token := c.token_use
+		c.mu.Unlock()
+
+		result := c.tryRequest(ctx, requestURL, target, token)
+		if result == nil {
+			return nil
+		}
+
+		if strings.Contains(result.Error(), "HTTP 429") {
+			c.rotateToken()
+			continue
+		}
+
+		return result
+	}
+
+	return fmt.Errorf("%s: all tokens rate-limited", requestURL)
 }
 
 func readJSON(path string, target interface{}) error {

@@ -8,12 +8,28 @@ import (
 	"time"
 )
 
+// parse cho api token
+func parseTokens(s string) []string {
+	parts := strings.Split(s, "|")
+
+	tokens := make([]string, 0, len(parts))
+
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			tokens = append(tokens, p)
+		}
+	}
+
+	return tokens
+}
+
 type Config struct {
 	RootDir         string
 	WebDir          string
 	FakeDir         string
 	BaseURL         string
-	Token           string
+	Token           []string
 	CompetitionCode string
 	Season          string
 	Port            string
@@ -28,17 +44,13 @@ func Load(rootDir string) Config {
 		RootDir:         rootDir,
 		WebDir:          filepath.Join(rootDir, "web"),
 		FakeDir:         filepath.Join(rootDir, "fake-data"),
-		BaseURL:         getValue(values, "FOOTBALL_DATA_BASE_URL", "https://api.football-data.org/v4"),
-		Token:           getValue(values, "FOOTBALL_DATA_TOKEN", ""),
-		CompetitionCode: getValue(values, "FOOTBALL_DATA_COMPETITION", "WC"),
-		Season:          getValue(values, "FOOTBALL_DATA_SEASON", "2026"),
+		BaseURL:         getValue(values, "FOOTBALL_API_BASE_URL", ""),
+		Token:           parseTokens(getValue(values, "FOOTBALL_DATA_TOKEN", "")),
+		CompetitionCode: getValue(values, "FOOTBALL_DATA_COMPETITION", ""),
+		Season:          getValue(values, "FOOTBALL_DATA_SEASON", ""),
 		Port:            getValue(values, "PORT", "8080"),
 		RefreshInterval: time.Duration(getInt(values, "REFRESH_SECONDS", 45)) * time.Second,
-		ForceFake:       getBool(values, "USE_FAKE_DATA", false),
-	}
-
-	if cfg.Token == "" {
-		cfg.Token = getValue(values, "API_TOKEN", "")
+		ForceFake:       getBool(values, "USE_FAKE_DATA", true),
 	}
 	return cfg
 }
