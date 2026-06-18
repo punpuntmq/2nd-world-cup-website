@@ -6,14 +6,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+)
+
+type Mode string
+
+const (
+	Fake Mode = "Fake"
+	Real Mode = "Real"
 )
 
 type ClientOptions struct {
@@ -31,10 +36,10 @@ type Client struct {
 	competitionCode string
 	season          string
 	fakeDir         string
-	forceFake       bool
 	httpClient      *http.Client
 	token_use       string
 	mu              sync.Mutex
+	mode            Mode
 }
 
 func (c *Client) currentToken() string {
@@ -79,8 +84,11 @@ func NewClient(options ClientOptions) *Client {
 
 	tokens := options.Token
 	tokenUse := ""
-	if len(tokens) != 0 {
+	var mode Mode = Real
+	if len(tokens) != 0 && !options.ForceFake {
 		tokenUse = tokens[0]
+	} else {
+		mode = Fake
 	}
 
 	return &Client{
@@ -89,11 +97,11 @@ func NewClient(options ClientOptions) *Client {
 		competitionCode: competitionCode,
 		season:          season,
 		fakeDir:         options.FakeDir,
-		forceFake:       options.ForceFake,
 		httpClient: &http.Client{
 			Timeout: 12 * time.Second,
 		},
 		token_use: tokenUse,
+		mode:      mode,
 	}
 }
 
@@ -109,23 +117,38 @@ func (e *apiError) Error() string {
 	return fmt.Sprintf("HTTP %d", e.StatusCode)
 }
 
-func (c *Client) Fetch(ctx context.Context) (RawState, error) {
-	if c.forceFake || len(c.tokens) == 0 {
-		return c.FetchFake(ctx)
-	}
+type Request struct {
+	Endpoint Endpoint
+	Target   func(*RawState) any
+}
 
-	raw, err := c.fetchAPI(ctx)
+func (c *Client) Fetch(ctx context.Context, requests []Request) (RawState, error) {
+	var (
+		raw RawState
+		err error
+	)
+	switch c.mode {
+	case Fake:
+		{
+			raw, err = c.FetchFake(ctx)
+		}
+	case Real:
+		{
+			for _, req := range requests {
+				if err := c.callAPI(
+					ctx,
+					req.Endpoint.URL(c),
+					req.Target(&raw),
+				); err != nil {
+					return RawState{}, err
+				}
+			}
+		}
+	}
 	if err == nil {
-		raw.Source = "football-data"
 		raw.FetchedAt = time.Now().UTC()
-		return raw, nil
 	}
-
-	fallback, fallbackErr := c.FetchFake(ctx)
-	if fallbackErr != nil {
-		return RawState{}, fmt.Errorf("football-data failed: %w; fake-data failed: %v", err, fallbackErr)
-	}
-	return fallback, fmt.Errorf("football-data failed, using fake-data fallback: %w", err)
+	return raw, err
 }
 
 func (c *Client) FetchFake(ctx context.Context) (RawState, error) {
@@ -142,36 +165,19 @@ func (c *Client) FetchFake(ctx context.Context) (RawState, error) {
 	if err := readJSON(filepath.Join(c.fakeDir, "teams.json"), &raw.Teams); err != nil {
 		return RawState{}, err
 	}
-	if err := readJSON(filepath.Join(c.fakeDir, "standings.json"), &raw.Standings); err != nil {
-		return RawState{}, err
-	}
 	raw.Source = "fake-data"
-	raw.FetchedAt = time.Now().UTC()
 	return raw, nil
 }
 
-func (c *Client) fetchAPI(ctx context.Context) (RawState, error) {
-	var raw RawState
-	if err := c.getJSON(ctx, c.competitionEndpoint("matches"), &raw.Matches); err != nil {
-		return RawState{}, err
+func readJSON(path string, target interface{}) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", path, err)
 	}
-	if err := c.getJSON(ctx, c.competitionEndpoint("teams"), &raw.Teams); err != nil {
-		return RawState{}, err
+	if err := json.Unmarshal(data, target); err != nil {
+		return fmt.Errorf("parse %s: %w", path, err)
 	}
-	if err := c.getJSON(ctx, c.competitionEndpoint("standings"), &raw.Standings); err != nil {
-		return RawState{}, err
-	}
-	return raw, nil
-}
-
-func (c *Client) competitionEndpoint(resource string) string {
-	endpoint := path.Join("competitions", c.competitionCode, resource)
-	if c.season == "" {
-		return endpoint
-	}
-	values := url.Values{}
-	values.Set("season", c.season)
-	return endpoint + "?" + values.Encode()
+	return nil
 }
 
 func (c *Client) tryRequest(ctx context.Context, requestURL string, target interface{}, token string) error {
@@ -207,7 +213,7 @@ func (c *Client) tryRequest(ctx context.Context, requestURL string, target inter
 	return nil
 }
 
-func (c *Client) getJSON(ctx context.Context, endpoint string, target interface{}) error {
+func (c *Client) callAPI(ctx context.Context, endpoint string, target interface{}) error {
 	endpoint = strings.TrimPrefix(endpoint, "/")
 	requestURL := c.baseURL + "/" + endpoint
 
@@ -230,15 +236,4 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, target interface{
 	}
 
 	return fmt.Errorf("%s: all tokens rate-limited", requestURL)
-}
-
-func readJSON(path string, target interface{}) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("read %s: %w", path, err)
-	}
-	if err := json.Unmarshal(data, target); err != nil {
-		return fmt.Errorf("parse %s: %w", path, err)
-	}
-	return nil
 }

@@ -1,45 +1,41 @@
 package store
 
 type ViewState struct {
-	Meta           MetaView             `json:"meta"`
-	Teams          []TeamView           `json:"teams"`
-	CurrentMatch   *MatchView           `json:"currentMatch"`
-	NextMatch      *MatchView           `json:"nextMatch"`
-	Highlight      HighlightView        `json:"highlight"`
-	UpcomingMatches []MatchView         `json:"upcomingMatches"`
-	FinishedMatches []MatchView         `json:"finishedMatches"`
-	SpecialMatches  []MatchView         `json:"specialMatches"`
-	Standings       []StandingGroupView `json:"standings"`
+	Meta  MetaView   `json:"meta"`
+	Teams []TeamView `json:"teams"`
+
+	CurrentMatch *MatchView `json:"currentMatch"`
+
+	Highlight HighlightView `json:"highlight"`
+
+	UpcomingMatches []MatchView `json:"upcomingMatches"`
+	FinishedMatches []MatchView `json:"finishedMatches"`
+	SpecialMatches  []MatchView `json:"specialMatches"`
+
+	Standings []StandingGroupView `json:"standings"`
 }
 
 type MetaView struct {
-	CompetitionCode string `json:"competitionCode"`
 	CompetitionName string `json:"competitionName"`
 	Source          string `json:"source"`
 	FetchedAt       string `json:"fetchedAt"`
 	LastError       string `json:"lastError,omitempty"`
-	RefreshSeconds  int    `json:"refreshSeconds"`
-	LiveCount       int    `json:"liveCount"`
-	UpcomingCount   int    `json:"upcomingCount"`
-	FinishedCount   int    `json:"finishedCount"`
-	SpecialCount    int    `json:"specialCount"`
+	RemainingCalls  int    `json:"remainingCalls,omitempty"`
 }
 
 type TeamView struct {
-	ID          int          `json:"id"`
-	Name        string       `json:"name"`
-	ShortName   string       `json:"shortName"`
-	TLA         string       `json:"tla"`
-	Crest       string       `json:"crest"`
-	Area        string       `json:"area"`
-	Coach       string       `json:"coach"`
-	Venue       string       `json:"venue"`
-	Group       string       `json:"group"`
-	Rank        int          `json:"rank"`
-	Played      int          `json:"played"`
-	Points      int          `json:"points"`
-	GoalDiff    int          `json:"goalDiff"`
-	Squad       []PlayerView `json:"squad"`
+	ID        int          `json:"id"`
+	Name      string       `json:"name"`
+	ShortName string       `json:"shortName"`
+	TLA       string       `json:"tla"`
+	Crest     string       `json:"crest"`
+	Coach     string       `json:"coach"`
+	Group     string       `json:"group"`
+	Rank      int          `json:"rank"`
+	Played    int          `json:"played"`
+	Points    int          `json:"points"`
+	GoalDiff  int          `json:"goalDiff"`
+	Squad     []PlayerView `json:"squad"`
 }
 
 type PlayerView struct {
@@ -47,7 +43,6 @@ type PlayerView struct {
 	Name        string `json:"name"`
 	Position    string `json:"position"`
 	Nationality string `json:"nationality"`
-	ShirtNumber string `json:"shirtNumber"`
 }
 
 type TeamMiniView struct {
@@ -73,7 +68,7 @@ type MatchView struct {
 	Stage        string       `json:"stage"`
 	Group        string       `json:"group"`
 	Matchday     string       `json:"matchday"`
-	SortTimeUnix int64        `json:"sortTimeUnix"`
+	SortTimeUnix int64        `json:"-"`
 }
 
 type HighlightView struct {
@@ -84,7 +79,7 @@ type HighlightView struct {
 
 type StandingGroupView struct {
 	Group       string            `json:"group"`
-	MemberCount int              `json:"memberCount"`
+	MemberCount int               `json:"memberCount"`
 	Rows        []StandingRowView `json:"rows"`
 }
 
