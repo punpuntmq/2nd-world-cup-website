@@ -7,77 +7,9 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="WC Realtime">
-        <span class="brand-mark">WC</span>
-        <span class="brand-text">World Cup</span>
-      </a>
-      <div class="topbar-status">
-        <span id="sourceTag" class="source-tag">RAM</span>
-        <span id="updatedAt">Đang tải...</span>
-        <button id="refreshButton" class="icon-button" type="button" title="Cập nhật ngay" aria-label="Cập nhật ngay">
-          <span aria-hidden="true">↻</span>
-        </button>
-      </div>
-    </header>
-
-    <main class="layout-shell">
-      <aside class="panel teams-panel" aria-label="Danh sách đội bóng">
-        <div class="panel-heading">
-          <p class="eyebrow">Teams</p>
-          <h1 id="competitionName">WC 2026</h1>
-        </div>
-        <div id="teamList" class="team-list"></div>
-      </aside>
-
-      <section class="center-stage" aria-label="Khu vực trận đấu">
-        <section id="currentMatch" class="match-hero"></section>
-
-        <section class="info-band">
-          <div id="matchHighlight" class="highlight-block"></div>
-          <div id="teamDetail" class="team-detail"></div>
-        </section>
-
-        <section class="schedule-panel">
-          <div class="panel-heading row-heading">
-            <div>
-              <p class="eyebrow">Schedule</p>
-              <h2>All matches</h2>
-            </div>
-            <div id="matchCounts" class="match-counts"></div>
-          </div>
-          <div id="matchList" class="match-list"></div>
-          <div id="specialList" class="special-list"></div>
-        </section>
-      </section>
-
-      <aside class="panel standings-panel" aria-label="Bảng xếp hạng">
-        <div class="panel-heading">
-          <p class="eyebrow">Standings</p>
-          <h2>Group table</h2>
-        </div>
-        <div id="groupTabs" class="group-tabs"></div>
-        <div id="activeGroupInfo" class="group-info"></div>
-        <div class="table-wrap">
-          <table class="standings-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Team</th>
-                <th>P</th>
-                <th>W</th>
-                <th>D</th>
-                <th>L</th>
-                <th>GD</th>
-                <th>Pts</th>
-              </tr>
-            </thead>
-            <tbody id="standingsBody"></tbody>
-          </table>
-        </div>
-      </aside>
-    </main>
-
+    <div id="root"></div>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

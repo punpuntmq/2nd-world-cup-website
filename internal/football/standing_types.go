@@ -41,7 +41,7 @@ func BuildWCStanding(raw RawState) *WCStanding {
 		Groups:      make(map[string]*GroupStanding),
 	}
 
-	for _, match := range raw.Matches {
+	for _, match := range SortedMatches(raw.Matches) {
 		s.ApplyMatch(match)
 	}
 
