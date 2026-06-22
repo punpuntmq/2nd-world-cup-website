@@ -67,7 +67,7 @@ func BuildViewState(raw football.RawState, refreshInterval time.Duration, refres
 	}
 }
 
-func LiveMatchCandidate(raw football.RawState, now time.Time) (football.Match, bool) {
+func LiveMatchCandidates(raw football.RawState, now time.Time) ([]football.Match, bool) {
 	candidates := make([]football.Match, 0, 2)
 	for _, match := range football.SortedMatches(raw.Matches) {
 		if match.ID == 0 {
@@ -78,7 +78,7 @@ func LiveMatchCandidate(raw football.RawState, now time.Time) (football.Match, b
 		}
 	}
 	if len(candidates) == 0 {
-		return football.Match{}, false
+		return []football.Match{}, false
 	}
 
 	sort.SliceStable(candidates, func(i, j int) bool {
@@ -90,7 +90,7 @@ func LiveMatchCandidate(raw football.RawState, now time.Time) (football.Match, b
 		return kickoffTime(candidates[i]).Before(kickoffTime(candidates[j]))
 	})
 
-	return candidates[0], true
+	return candidates, true
 }
 
 func indexTeams(teams []football.Team) map[int]football.Team {

@@ -30,7 +30,7 @@ func (e CompetitionEndpoint) URL(
 }
 
 type Live struct {
-	TeamID string
+	MatchID string
 }
 
 func (e Live) URL(
@@ -38,7 +38,7 @@ func (e Live) URL(
 ) string {
 
 	return c.liveTimeEndpoint(
-		e.TeamID,
+		e.MatchID,
 	)
 }
 
@@ -52,6 +52,6 @@ func (c *Client) competitionEndpoint(resource string) string {
 	return endpoint + "?" + values.Encode()
 }
 
-func (c *Client) liveTimeEndpoint(Id_team string) string {
-	return path.Join("matches", Id_team)
+func (c *Client) liveTimeEndpoint(matchID string) string {
+	return path.Join("matches", matchID)
 }

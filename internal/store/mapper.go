@@ -25,15 +25,20 @@ func StaticCompetitionRequests() []football.Request {
 	}
 }
 
-func LiveMatchRequests(matchID int) []football.Request {
-	return []football.Request{
-		{
-			Endpoint: football.Live{TeamID: strconv.Itoa(matchID)},
+func LiveMatchRequests(matches []football.Match) []football.Request {
+	requests := make([]football.Request, 0, len(matches))
+	for _, match := range matches {
+		if match.ID == 0 {
+			continue
+		}
+		requests = append(requests, football.Request{
+			Endpoint: football.Live{MatchID: strconv.Itoa(match.ID)},
 			Target: func(raw *football.RawState) any {
 				return &liveMatchResourceTarget{raw: raw}
 			},
-		},
+		})
 	}
+	return requests
 }
 
 func MapViewState(raw football.RawState, refreshInterval time.Duration, refreshMeta RefreshMeta) ViewState {
@@ -46,32 +51,16 @@ type matchesResourceTarget struct {
 
 func (t *matchesResourceTarget) UnmarshalJSON(data []byte) error {
 	var payload struct {
-		Area        football.Area        `json:"area"`
 		Competition football.Competition `json:"competition"`
-		Season      football.Season      `json:"season"`
 		Matches     []football.Match     `json:"matches"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return err
 	}
 
-	if payload.Matches == nil {
-		var direct []football.Match
-		if err := json.Unmarshal(data, &direct); err != nil {
-			return err
-		}
-		payload.Matches = direct
-	}
-
 	t.raw.Matches = football.MatchesByID(payload.Matches)
-	if payload.Area.ID != 0 {
-		t.raw.Area = payload.Area
-	}
 	if payload.Competition.ID != 0 {
 		t.raw.Competition = payload.Competition
-	}
-	if payload.Season.ID != 0 {
-		t.raw.Season = payload.Season
 	}
 	return nil
 }
@@ -82,33 +71,24 @@ type teamsResourceTarget struct {
 
 func (t *teamsResourceTarget) UnmarshalJSON(data []byte) error {
 	var payload struct {
-		Area        football.Area        `json:"area"`
 		Competition football.Competition `json:"competition"`
 		Season      football.Season      `json:"season"`
 		Teams       []football.Team      `json:"teams"`
 	}
+
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return err
 	}
 
-	if payload.Teams == nil {
-		var direct []football.Team
-		if err := json.Unmarshal(data, &direct); err != nil {
-			return err
-		}
-		payload.Teams = direct
-	}
-
 	t.raw.Teams = payload.Teams
-	if payload.Area.ID != 0 {
-		t.raw.Area = payload.Area
-	}
 	if payload.Competition.ID != 0 {
 		t.raw.Competition = payload.Competition
 	}
+
 	if payload.Season.ID != 0 {
 		t.raw.Season = payload.Season
 	}
+
 	return nil
 }
 
@@ -122,6 +102,7 @@ func (t *liveMatchResourceTarget) UnmarshalJSON(data []byte) error {
 		Competition football.Competition `json:"competition"`
 		Season      football.Season      `json:"season"`
 	}
+
 	if err := json.Unmarshal(data, &metadata); err != nil {
 		return err
 	}
@@ -143,5 +124,6 @@ func (t *liveMatchResourceTarget) UnmarshalJSON(data []byte) error {
 	if metadata.Season.ID != 0 {
 		t.raw.Season = metadata.Season
 	}
+
 	return nil
 }
