@@ -147,6 +147,9 @@ func (c *Client) Fetch(ctx context.Context, requests []Request) (RawState, error
 	}
 	if err == nil {
 		raw.FetchedAt = time.Now().UTC()
+		if raw.Source == "" {
+			raw.Source = "football-data"
+		}
 	}
 	return raw, err
 }
@@ -158,12 +161,40 @@ func (c *Client) FetchFake(ctx context.Context) (RawState, error) {
 	default:
 	}
 
-	var raw RawState
-	if err := readJSON(filepath.Join(c.fakeDir, "matches.json"), &raw.Matches); err != nil {
+	var (
+		raw            RawState
+		matchesPayload struct {
+			Area        Area        `json:"area"`
+			Competition Competition `json:"competition"`
+			Season      Season      `json:"season"`
+			Matches     []Match     `json:"matches"`
+		}
+		teamsPayload struct {
+			Area        Area        `json:"area"`
+			Competition Competition `json:"competition"`
+			Season      Season      `json:"season"`
+			Teams       []Team      `json:"teams"`
+		}
+	)
+	if err := readJSON(filepath.Join(c.fakeDir, "matches.json"), &matchesPayload); err != nil {
 		return RawState{}, err
 	}
-	if err := readJSON(filepath.Join(c.fakeDir, "teams.json"), &raw.Teams); err != nil {
+	if err := readJSON(filepath.Join(c.fakeDir, "teams.json"), &teamsPayload); err != nil {
 		return RawState{}, err
+	}
+	raw.Matches = MatchesByID(matchesPayload.Matches)
+	raw.Teams = teamsPayload.Teams
+	raw.Area = matchesPayload.Area
+	raw.Competition = matchesPayload.Competition
+	raw.Season = matchesPayload.Season
+	if raw.Area.ID == 0 {
+		raw.Area = teamsPayload.Area
+	}
+	if raw.Competition.ID == 0 {
+		raw.Competition = teamsPayload.Competition
+	}
+	if raw.Season.ID == 0 {
+		raw.Season = teamsPayload.Season
 	}
 	raw.Source = "fake-data"
 	return raw, nil

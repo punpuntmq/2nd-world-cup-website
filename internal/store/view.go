@@ -1,13 +1,17 @@
 package store
 
+import "time"
+
 type ViewState struct {
 	Meta  MetaView   `json:"meta"`
 	Teams []TeamView `json:"teams"`
 
 	CurrentMatch *MatchView `json:"currentMatch"`
+	NextMatch    *MatchView `json:"nextMatch"`
 
 	Highlight HighlightView `json:"highlight"`
 
+	LiveMatches     []MatchView `json:"liveMatches"`
 	UpcomingMatches []MatchView `json:"upcomingMatches"`
 	FinishedMatches []MatchView `json:"finishedMatches"`
 	SpecialMatches  []MatchView `json:"specialMatches"`
@@ -16,11 +20,29 @@ type ViewState struct {
 }
 
 type MetaView struct {
-	CompetitionName string `json:"competitionName"`
-	Source          string `json:"source"`
-	FetchedAt       string `json:"fetchedAt"`
-	LastError       string `json:"lastError,omitempty"`
-	RemainingCalls  int    `json:"remainingCalls,omitempty"`
+	CompetitionName      string `json:"competitionName"`
+	CompetitionEmblem    string `json:"competitionEmblem"`
+	Source               string `json:"source"`
+	FetchedAt            string `json:"fetchedAt"`
+	LastError            string `json:"lastError,omitempty"`
+	RefreshSeconds       int    `json:"refreshSeconds"`
+	LiveCount            int    `json:"liveCount"`
+	RefreshStatus        string `json:"refreshStatus"`
+	RemainingCalls       int    `json:"remainingCalls"`
+	QuotaLimit           int    `json:"quotaLimit"`
+	NextAllowedRefreshAt string `json:"nextAllowedRefreshAt,omitempty"`
+	LastRefreshAt        string `json:"lastRefreshAt,omitempty"`
+	IsStale              bool   `json:"isStale"`
+}
+
+type RefreshMeta struct {
+	Status               string
+	RemainingCalls       int
+	QuotaLimit           int
+	NextAllowedRefreshAt time.Time
+	LastRefreshAt        time.Time
+	LastError            string
+	IsStale              bool
 }
 
 type TeamView struct {
@@ -64,7 +86,6 @@ type MatchView struct {
 	StatusGroup  string       `json:"statusGroup"`
 	Minute       string       `json:"minute"`
 	KickoffUTC   string       `json:"kickoffUTC"`
-	Venue        string       `json:"venue"`
 	Stage        string       `json:"stage"`
 	Group        string       `json:"group"`
 	Matchday     string       `json:"matchday"`

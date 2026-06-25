@@ -30,11 +30,14 @@ func main() {
 		ForceFake:       cfg.ForceFake,
 	})
 
-	memory := store.NewMemoryStore(client, cfg.RefreshInterval)
+	memory := store.NewMemoryStore(client, store.StoreOptions{
+		RefreshInterval: cfg.RefreshInterval,
+		Quota:           store.NewFixedWindowQuota(cfg.QuotaLimit, cfg.QuotaWindow),
+	})
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := memory.Refresh(ctx); err != nil {
+	if err := memory.InitialRefresh(ctx); err != nil {
 		log.Printf("initial refresh used fallback or failed: %v", err)
 	}
 	go memory.Run(ctx)

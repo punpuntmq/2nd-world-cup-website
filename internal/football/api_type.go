@@ -5,10 +5,11 @@ import (
 )
 
 type Season struct {
-	ID        int          `json:"id"`
-	StartDate string       `json:"startDate"`
-	EndDate   string       `json:"endDate"`
-	Winner    *TeamSummary `json:"winner"`
+	ID              int          `json:"id"`
+	StartDate       string       `json:"startDate"`
+	EndDate         string       `json:"endDate"`
+	CurrentMatchday *int         `json:"currentMatchday"`
+	Winner          *TeamSummary `json:"winner"`
 }
 
 type Area struct {
@@ -30,7 +31,7 @@ type RawState struct {
 	Source    string
 	FetchedAt time.Time
 
-	Matches []Match
+	Matches map[int]Match
 	Teams   []Team
 
 	Area        Area

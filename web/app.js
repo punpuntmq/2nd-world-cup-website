@@ -1,292 +1,542 @@
-const state = {
-  data: null,
-  selectedTeamId: null,
-  activeGroup: null,
-  timer: null,
-};
+const { createElement: h, useEffect, useState } = window.React || {};
 
-const $ = (selector) => document.querySelector(selector);
+if (!window.React || !window.ReactDOM) {
+  document.getElementById("root").innerHTML = '<div class="app-error">Không tải được React runtime.</div>';
+} else {
+  const root = window.ReactDOM.createRoot(document.getElementById("root"));
+  root.render(h(App));
+}
 
-document.addEventListener("DOMContentLoaded", () => {
-  $("#refreshButton").addEventListener("click", () => refreshNow());
-  loadState();
-});
+function App() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [route, setRoute] = useState(parseRoute());
+  const [activeGroup, setActiveGroup] = useState("");
+  const [scheduleFilter, setScheduleFilter] = useState("all");
+  const [isRefreshing, setRefreshing] = useState(false);
 
-async function loadState() {
-  try {
-    const response = await fetch("/api/state", { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    state.data = data;
-    if (!state.activeGroup && data.standings?.length) {
-      state.activeGroup = data.standings[0].group;
+  useEffect(() => {
+    const onPop = () => setRoute(parseRoute());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    let timer = 0;
+
+    const load = async () => {
+      try {
+        const response = await fetch("/api/state", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const nextData = await response.json();
+        if (!alive) return;
+        setData(nextData);
+        setError("");
+        if (!activeGroup && nextData.standings?.length) {
+          setActiveGroup(nextData.standings[0].group);
+        }
+        timer = window.setTimeout(load, pollDelayMs(nextData.meta));
+      } catch (err) {
+        if (!alive) return;
+        setError(err.message);
+        timer = window.setTimeout(load, 30000);
+      }
+    };
+
+    load();
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [activeGroup]);
+
+  const navigate = (path) => {
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, "", path);
     }
-    if (!state.selectedTeamId && data.teams?.length) {
-      state.selectedTeamId = data.teams[0].id;
+    setRoute(parseRoute(path));
+  };
+
+  const refreshNow = async () => {
+    setRefreshing(true);
+    try {
+      const response = await fetch("/api/refresh", { method: "POST" });
+      const payload = await response.json();
+      setData(payload.state);
+      setError(payload.error || "");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRefreshing(false);
     }
-    render();
-    scheduleNextPoll(data.meta?.refreshSeconds || 45);
-  } catch (error) {
-    renderLoadError(error);
-    scheduleNextPoll(30);
-  }
-}
+  };
 
-async function refreshNow() {
-  const button = $("#refreshButton");
-  button.disabled = true;
-  try {
-    const response = await fetch("/api/refresh", { method: "POST" });
-    const payload = await response.json();
-    state.data = payload.state;
-    render();
-  } catch (error) {
-    renderLoadError(error);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-function scheduleNextPoll(seconds) {
-  clearTimeout(state.timer);
-  state.timer = setTimeout(loadState, Math.max(10, seconds) * 1000);
-}
-
-function render() {
-  const data = state.data;
-  if (!data) return;
-  $("#competitionName").textContent = `${data.meta?.competitionName || "World Cup"} ${data.meta?.competitionCode || ""}`.trim();
-  renderMeta(data.meta);
-  renderTeams(data.teams || []);
-  renderHero(data.currentMatch);
-  renderHighlight(data.highlight, data.nextMatch);
-  renderTeamDetail(findSelectedTeam());
-  renderMatches(data);
-  renderStandings(data.standings || []);
-}
-
-function renderMeta(meta = {}) {
-  const source = $("#sourceTag");
-  source.textContent = meta.source === "football-data" ? "API" : "FAKE";
-  source.classList.toggle("live", meta.source === "football-data");
-  const updatedAt = meta.fetchedAt ? formatDateTime(meta.fetchedAt) : "Đang chờ dữ liệu";
-  $("#updatedAt").textContent = meta.lastError ? `${updatedAt} · fallback` : updatedAt;
-}
-
-function renderTeams(teams) {
-  const list = $("#teamList");
-  list.innerHTML = "";
-  if (!teams.length) {
-    list.innerHTML = `<div class="empty-state">Chưa có đội bóng.</div>`;
-    return;
+  if (!data) {
+    return h("div", { className: "loading-screen" }, error ? `Không tải được dữ liệu: ${error}` : "Đang tải World Cup...");
   }
 
-  for (const team of teams) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `team-button ${team.id === state.selectedTeamId ? "active" : ""}`;
-    button.innerHTML = `
-      ${crestMarkup(team.crest, team.tla)}
-      <span>
-        <span class="team-name">${escapeHTML(team.shortName || team.name)}</span>
-        <span class="team-meta">${escapeHTML(team.group || "World Cup")} · ${team.points || 0} pts</span>
-      </span>
-      <span class="rank-chip">${team.rank ? `#${team.rank}` : ""}</span>
-    `;
-    button.addEventListener("click", () => {
-      state.selectedTeamId = team.id;
-      renderTeams(teams);
-      renderTeamDetail(team);
-    });
-    list.appendChild(button);
+  return h(
+    "div",
+    { className: "app-shell" },
+    h(Topbar, { meta: data.meta, error, isRefreshing, onRefresh: refreshNow, onNavigate: navigate }),
+    h(StatusBanner, { meta: data.meta, error }),
+    route.name === "team"
+      ? h(TeamPage, { data, teamId: route.id, onNavigate: navigate })
+      : route.name === "match"
+        ? h(MatchPage, { data, matchId: route.id, onNavigate: navigate })
+        : h(DashboardPage, {
+            data,
+            activeGroup,
+            scheduleFilter,
+            setActiveGroup,
+            setScheduleFilter,
+            onNavigate: navigate,
+          })
+  );
+}
+
+function Topbar({ meta, error, isRefreshing, onRefresh, onNavigate }) {
+  const status = effectiveRefreshStatus(meta);
+  const rateLimited = status === "rate_limited" && isFuture(meta?.nextAllowedRefreshAt);
+  const disabled = isRefreshing || status === "refreshing" || rateLimited;
+  return h(
+    "header",
+    { className: "topbar" },
+    h(
+      "button",
+      { className: "brand", type: "button", onClick: () => onNavigate("/") },
+      h("span", { className: "brand-mark" }, "WC"),
+      h("span", { className: "brand-text" }, "World Cup")
+    ),
+    h(
+      "div",
+      { className: "topbar-status" },
+      h("span", { className: `source-tag ${meta?.source === "football-data" ? "live" : ""}` }, meta?.source === "football-data" ? "API" : "FAKE"),
+      h("span", { className: `sync-pill ${statusClass(status)}` }, statusLabel(status)),
+      h("span", { className: "quota-pill" }, `Quota ${meta?.remainingCalls ?? "-"} / ${meta?.quotaLimit ?? "-"}`),
+      h("span", null, error ? `${formatDateTime(meta?.fetchedAt)} · fallback` : formatDateTime(meta?.fetchedAt)),
+      h("button", { className: "icon-button", type: "button", title: refreshTitle(meta), disabled, onClick: onRefresh }, "↻")
+    )
+  );
+}
+
+function StatusBanner({ meta, error }) {
+  const status = effectiveRefreshStatus(meta);
+  if (status === "refreshing") {
+    return h("div", { className: "status-banner refreshing" }, "Backend đang cập nhật snapshot World Cup.");
   }
+  if (status === "rate_limited") {
+    return h("div", { className: "status-banner rate-limited" }, `Đã chạm quota upstream. Lần refresh tiếp theo: ${formatDateTime(meta?.nextAllowedRefreshAt)}.`);
+  }
+  if (status === "error" || meta?.lastError || error) {
+    return h("div", { className: "status-banner error" }, `Refresh lỗi: ${meta?.lastError || error}. Dashboard vẫn dùng dữ liệu gần nhất.`);
+  }
+  if (meta?.isStale || status === "stale") {
+    return h("div", { className: "status-banner stale" }, "Dữ liệu đang cũ; dashboard vẫn hiển thị snapshot gần nhất từ backend.");
+  }
+  return null;
 }
 
-function renderHero(match) {
-  const root = $("#currentMatch");
-  if (!match) {
-    root.innerHTML = `<div class="empty-state">Chưa có trận hiện tại.</div>`;
-    return;
+function DashboardPage({ data, activeGroup, scheduleFilter, setActiveGroup, setScheduleFilter, onNavigate }) {
+  return h(
+    "main",
+    { className: "layout-shell" },
+    h(TeamsPanel, { teams: data.teams || [], onNavigate }),
+    h(
+      "section",
+      { className: "center-stage", "aria-label": "Khu vực trận đấu" },
+      h(LiveSection, { matches: data.liveMatches || [], onNavigate }),
+      h(NextMatchesSection, { matches: data.upcomingMatches || [], onNavigate }),
+      h(SchedulePanel, {
+        data,
+        filter: scheduleFilter,
+        onFilterChange: setScheduleFilter,
+        onNavigate,
+      })
+    ),
+    h(StandingsPanel, { groups: data.standings || [], activeGroup, onGroupChange: setActiveGroup })
+  );
+}
+
+function TeamsPanel({ teams, onNavigate }) {
+  return h(
+    "aside",
+    { className: "panel teams-panel", "aria-label": "Danh sách đội bóng" },
+    h("div", { className: "panel-heading" }, h("p", { className: "eyebrow" }, "Teams"), h("h1", null, "FIFA World Cup")),
+    h(
+      "div",
+      { className: "team-list" },
+      teams.length
+        ? teams.map((team) =>
+            h(
+              "button",
+              { key: team.id, type: "button", className: "team-button", onClick: () => onNavigate(`/team/${team.id}`) },
+              h(Crest, { src: team.crest, fallback: team.tla }),
+              h("span", null, h("span", { className: "team-name" }, team.shortName || team.name), h("span", { className: "team-meta" }, team.group || "World Cup")),
+              h("span", { className: "open-chip" }, "›")
+            )
+          )
+        : h("div", { className: "empty-state" }, "Chưa có đội bóng.")
+    )
+  );
+}
+
+function LiveSection({ matches, onNavigate }) {
+  if (!matches.length) return null;
+  return h(
+    "section",
+    { className: "live-panel" },
+    h("div", { className: "panel-heading row-heading compact-heading" }, h("div", null, h("p", { className: "eyebrow" }, "Live"), h("h2", null, "Đang trực tiếp"))),
+    h(
+      "div",
+      { className: "live-grid" },
+      matches.map((match) => h(LiveCard, { key: match.id, match, onNavigate }))
+    )
+  );
+}
+
+function LiveCard({ match, onNavigate }) {
+  return h(
+    "article",
+    { className: "live-card" },
+    h("div", { className: "match-topline" }, h("span", { className: "status-pill live" }, match.minute || match.statusLabel), h("span", null, match.group || match.stage)),
+    h(MatchTeams, { match, onNavigate, large: true }),
+    h(ScoreButton, { match, onNavigate, large: true })
+  );
+}
+
+function NextMatchesSection({ matches, onNavigate }) {
+  const nextMatches = getNextWindow(matches);
+  if (!nextMatches.length) {
+    return h("section", { className: "next-panel" }, h("div", { className: "empty-state" }, "Chưa có trận kế tiếp."));
   }
 
-  root.innerHTML = `
-    <div class="match-topline">
-      <div>
-        <p class="eyebrow">${escapeHTML(match.stage || "World Cup")}</p>
-        <h2>${escapeHTML(match.group || "Match")}</h2>
-      </div>
-      <span class="status-pill ${match.statusGroup}">${escapeHTML(match.statusLabel)}</span>
-    </div>
-    <div class="scoreboard">
-      <div class="match-team">
-        ${crestMarkup(match.homeTeam.crest, match.homeTeam.tla)}
-        <div class="match-team-name">${escapeHTML(match.homeTeam.name)}</div>
-      </div>
-      <div class="score-box">
-        <div class="score-main">
-          <span>${escapeHTML(match.homeScore)}</span>
-          <span class="score-separator">-</span>
-          <span>${escapeHTML(match.awayScore)}</span>
-        </div>
-        <span class="status-pill ${match.statusGroup}">${escapeHTML(match.minute)}</span>
-      </div>
-      <div class="match-team">
-        ${crestMarkup(match.awayTeam.crest, match.awayTeam.tla)}
-        <div class="match-team-name">${escapeHTML(match.awayTeam.name)}</div>
-      </div>
-    </div>
-    <div class="hero-meta">
-      <span>${formatDateTime(match.kickoffUTC)}</span>
-      <span>${escapeHTML(match.venue)}</span>
-      <span>${escapeHTML(match.matchday ? `Matchday ${match.matchday}` : "World Cup")}</span>
-    </div>
-  `;
+  return h(
+    "section",
+    { className: "next-panel" },
+    h("div", { className: "panel-heading row-heading compact-heading" }, h("div", null, h("p", { className: "eyebrow" }, "Next Match"), h("h2", null, "Trận kế tiếp"))),
+    h(
+      "div",
+      { className: `next-grid count-${nextMatches.length}` },
+      nextMatches.map((match) => h(NextMatchCard, { key: match.id, match, onNavigate }))
+    )
+  );
 }
 
-function renderHighlight(highlight = {}, nextMatch) {
-  const root = $("#matchHighlight");
-  root.innerHTML = `
-    <p class="highlight-title">${escapeHTML(highlight.title || "Trạng thái")}</p>
-    <p class="highlight-message">${escapeHTML(highlight.message || "Đang cập nhật")}</p>
-    <p class="highlight-detail">${escapeHTML(highlight.detail || "")}</p>
-    ${nextMatch ? `<p class="highlight-detail">Next: ${escapeHTML(nextMatch.homeTeam.shortName)} vs ${escapeHTML(nextMatch.awayTeam.shortName)} · ${formatDateTime(nextMatch.kickoffUTC)}</p>` : ""}
-  `;
+function NextMatchCard({ match, onNavigate }) {
+  return h(
+    "article",
+    { className: "next-card" },
+    h("div", { className: "next-time" }, formatDateTime(match.kickoffUTC)),
+    h(MatchTeams, { match, onNavigate, large: false }),
+    h(ScoreButton, { match, onNavigate, large: false }),
+    h("div", { className: "hero-meta" }, h("span", null, match.group || match.stage), h("span", null, match.matchday ? `Matchday ${match.matchday}` : "World Cup"))
+  );
 }
 
-function renderTeamDetail(team) {
-  const root = $("#teamDetail");
-  if (!team) {
-    root.innerHTML = `<div class="empty-state">Chọn một đội để xem chi tiết.</div>`;
-    return;
-  }
-
-  const squad = (team.squad || []).slice(0, 10).map((player) => `
-    <div class="player-row">
-      <span class="player-number">${escapeHTML(player.shirtNumber || "-")}</span>
-      <span class="player-name">${escapeHTML(player.name)}</span>
-      <span>${escapeHTML(shortPosition(player.position))}</span>
-    </div>
-  `).join("");
-
-  root.innerHTML = `
-    <div class="team-detail-header">
-      ${crestMarkup(team.crest, team.tla)}
-      <div>
-        <p class="eyebrow">${escapeHTML(team.group || "World Cup")}</p>
-        <h2 class="team-detail-title">${escapeHTML(team.name)}</h2>
-      </div>
-    </div>
-    <div class="detail-grid">
-      <div class="detail-item"><div class="detail-label">Rank</div><div class="detail-value">${team.rank ? `#${team.rank}` : "-"}</div></div>
-      <div class="detail-item"><div class="detail-label">Points</div><div class="detail-value">${team.points || 0}</div></div>
-      <div class="detail-item"><div class="detail-label">Coach</div><div class="detail-value">${escapeHTML(team.coach || "-")}</div></div>
-      <div class="detail-item"><div class="detail-label">Venue</div><div class="detail-value">${escapeHTML(team.venue || "-")}</div></div>
-    </div>
-    <div class="squad-list">${squad || `<div class="empty-state">Chua co du lieu cau thu.</div>`}</div>
-  `;
-}
-
-function renderMatches(data) {
-  const counts = $("#matchCounts");
-  counts.innerHTML = `
-    <span class="count-pill">Live ${data.meta?.liveCount || 0}</span>
-    <span class="count-pill">Upcoming ${data.meta?.upcomingCount || 0}</span>
-    <span class="count-pill">FT ${data.meta?.finishedCount || 0}</span>
-  `;
-
-  const mainList = $("#matchList");
+function SchedulePanel({ data, filter, onFilterChange, onNavigate }) {
   const upcoming = data.upcomingMatches || [];
   const finished = data.finishedMatches || [];
-  const rows = [...upcoming, ...finished];
-  mainList.innerHTML = rows.length ? rows.map(matchRowMarkup).join("") : `<div class="empty-state">Chưa có lịch đấu.</div>`;
-
   const special = data.specialMatches || [];
-  $("#specialList").innerHTML = special.length
-    ? `<p class="special-title">Tạm hoãn / hoãn / hủy</p>${special.map(matchRowMarkup).join("")}`
-    : "";
+  const rows = filter === "upcoming" ? upcoming : filter === "finished" ? finished : [...upcoming, ...finished];
+
+  return h(
+    "section",
+    { className: "schedule-panel" },
+    h(
+      "div",
+      { className: "panel-heading row-heading" },
+      h("div", null, h("p", { className: "eyebrow" }, "Schedule"), h("h2", null, "All matches")),
+      h(
+        "div",
+        { className: "schedule-filters", role: "tablist", "aria-label": "Lọc lịch đấu" },
+        h(FilterButton, { active: filter === "all", onClick: () => onFilterChange("all"), label: `All ${upcoming.length + finished.length}` }),
+        h(FilterButton, { active: filter === "upcoming", onClick: () => onFilterChange("upcoming"), label: `Upcoming ${upcoming.length}` }),
+        h(FilterButton, { active: filter === "finished", onClick: () => onFilterChange("finished"), label: `Finished ${finished.length}` })
+      )
+    ),
+    h("div", { className: "match-list" }, rows.length ? rows.map((match) => h(MatchRow, { key: match.id, match, onNavigate })) : h("div", { className: "empty-state" }, "Chưa có lịch đấu.")),
+    special.length
+      ? h("div", { className: "special-list" }, h("p", { className: "special-title" }, "Tạm hoãn / hoãn / hủy"), special.map((match) => h(MatchRow, { key: match.id, match, onNavigate })))
+      : null
+  );
 }
 
-function matchRowMarkup(match) {
-  return `
-    <div class="match-row ${match.statusGroup}">
-      <div class="match-time">
-        <strong>${escapeHTML(match.statusLabel)}</strong><br />
-        <span>${formatShortDate(match.kickoffUTC)}</span>
-      </div>
-      <div class="row-team">${crestMarkup(match.homeTeam.crest, match.homeTeam.tla)}<span class="row-team-name">${escapeHTML(match.homeTeam.shortName || match.homeTeam.name)}</span></div>
-      <div class="row-score">${escapeHTML(match.homeScore)}:${escapeHTML(match.awayScore)}</div>
-      <div class="row-team">${crestMarkup(match.awayTeam.crest, match.awayTeam.tla)}<span class="row-team-name">${escapeHTML(match.awayTeam.shortName || match.awayTeam.name)}</span></div>
-      <div class="row-stage">${escapeHTML(match.group || match.stage || "")}<br />${escapeHTML(match.venue)}</div>
-    </div>
-  `;
+function FilterButton({ active, onClick, label }) {
+  return h("button", { type: "button", className: `filter-button ${active ? "active" : ""}`, onClick }, label);
 }
 
-function renderStandings(groups) {
-  const tabs = $("#groupTabs");
-  const body = $("#standingsBody");
-  const info = $("#activeGroupInfo");
-  tabs.innerHTML = "";
+function MatchRow({ match, onNavigate }) {
+  return h(
+    "div",
+    { className: `match-row ${match.statusGroup}` },
+    h("div", { className: "match-time" }, h("strong", null, match.statusLabel), h("br"), h("span", null, formatShortDate(match.kickoffUTC))),
+    h(TeamButton, { team: match.homeTeam, className: "row-team home-team", onNavigate }),
+    h(ScoreButton, { match, onNavigate }),
+    h(TeamButton, { team: match.awayTeam, className: "row-team away-team", onNavigate }),
+    h("div", { className: "row-stage" }, match.group || match.stage || "")
+  );
+}
 
-  if (!groups.length) {
-    info.textContent = "";
-    body.innerHTML = `<tr><td colspan="8" class="empty-state">Chưa có bảng xếp hạng.</td></tr>`;
-    return;
+function MatchTeams({ match, onNavigate, large }) {
+  return h(
+    "div",
+    { className: large ? "match-teams large" : "match-teams" },
+    h(TeamButton, { team: match.homeTeam, className: "match-team-link", onNavigate }),
+    h("span", { className: "versus" }, "vs"),
+    h(TeamButton, { team: match.awayTeam, className: "match-team-link", onNavigate })
+  );
+}
+
+function TeamButton({ team, className, onNavigate }) {
+  return h(
+    "button",
+    { type: "button", className, onClick: () => team?.id && onNavigate(`/team/${team.id}`), disabled: !team?.id },
+    h(Crest, { src: team?.crest, fallback: team?.tla }),
+    h("span", { className: "row-team-name" }, team?.shortName || team?.name || "TBD")
+  );
+}
+
+function ScoreButton({ match, onNavigate, large }) {
+  return h(
+    "button",
+    { type: "button", className: large ? "score-button large" : "score-button", onClick: () => onNavigate(`/match/${match.id}`), title: "Xem chi tiết trận đấu" },
+    h("span", null, match.homeScore),
+    h("span", { className: "score-separator" }, "-"),
+    h("span", null, match.awayScore)
+  );
+}
+
+function StandingsPanel({ groups, activeGroup, onGroupChange }) {
+  const selected = groups.find((group) => group.group === activeGroup) || groups[0];
+  return h(
+    "aside",
+    { className: "panel standings-panel", "aria-label": "Bảng xếp hạng" },
+    h("div", { className: "panel-heading" }, h("p", { className: "eyebrow" }, "Standings"), h("h2", null, "Group table")),
+    groups.length
+      ? h(
+          React.Fragment,
+          null,
+          h(
+            "div",
+            { className: "group-tabs" },
+            groups.map((group) =>
+              h(
+                "button",
+                { key: group.group, type: "button", className: `group-tab ${group.group === selected.group ? "active" : ""}`, onClick: () => onGroupChange(group.group) },
+                h("span", null, group.group),
+                h("strong", null, group.memberCount ?? group.rows?.length ?? 0)
+              )
+            )
+          ),
+          h("div", { className: "group-info" }, `${selected.group} · ${(selected.rows || []).length} đội trong group`),
+          h(
+            "div",
+            { className: "table-wrap" },
+            h(
+              "table",
+              { className: "standings-table" },
+              h("thead", null, h("tr", null, ["#", "Team", "P", "W", "D", "L", "GD", "Pts"].map((label) => h("th", { key: label }, label)))),
+              h(
+                "tbody",
+                null,
+                (selected.rows || []).map((row) =>
+                  h(
+                    "tr",
+                    { key: row.team.id },
+                    h("td", null, row.position),
+                    h("td", null, h("span", { className: "standing-team" }, h(Crest, { src: row.team.crest, fallback: row.team.tla }), h("strong", null, row.team.tla || row.team.shortName))),
+                    h("td", null, row.playedGames),
+                    h("td", null, row.won),
+                    h("td", null, row.draw),
+                    h("td", null, row.lost),
+                    h("td", { className: row.goalDifference >= 0 ? "gd-positive" : "gd-negative" }, formatGoalDiff(row.goalDifference)),
+                    h("td", { className: "points-cell" }, row.points)
+                  )
+                )
+              )
+            )
+          )
+        )
+      : h("div", { className: "empty-state" }, "Chưa có bảng xếp hạng.")
+  );
+}
+
+function TeamPage({ data, teamId, onNavigate }) {
+  const team = (data.teams || []).find((item) => item.id === teamId);
+  const matches = getAllMatches(data).filter((match) => match.homeTeam.id === teamId || match.awayTeam.id === teamId);
+  if (!team) return h(NotFoundPage, { title: "Không tìm thấy đội", onNavigate });
+
+  return h(
+    "main",
+    { className: "detail-layout" },
+    h(TeamsPanel, { teams: data.teams || [], onNavigate }),
+    h(
+      "section",
+      { className: "detail-page" },
+      h("button", { className: "back-button", type: "button", onClick: () => onNavigate("/") }, "← Dashboard"),
+      h(
+        "div",
+        { className: "detail-hero" },
+        h(Crest, { src: team.crest, fallback: team.tla }),
+        h("div", null, h("p", { className: "eyebrow" }, team.group || "World Cup"), h("h1", null, team.name), h("p", { className: "detail-muted" }, team.coach ? `HLV: ${team.coach}` : "Chưa có thông tin HLV"))
+      ),
+      h(
+        "div",
+        { className: "detail-grid" },
+        h(DetailItem, { label: "Rank", value: team.rank ? `#${team.rank}` : "-" }),
+        h(DetailItem, { label: "Points", value: team.points || 0 }),
+        h(DetailItem, { label: "Played", value: team.played || 0 }),
+        h(DetailItem, { label: "Goal diff", value: formatGoalDiff(team.goalDiff || 0) })
+      ),
+      h("h2", { className: "section-title" }, "Trận đấu của đội"),
+      h("div", { className: "match-list detail-matches" }, matches.length ? matches.map((match) => h(MatchRow, { key: match.id, match, onNavigate })) : h("div", { className: "empty-state" }, "Chưa có trận đấu.")),
+      h("h2", { className: "section-title" }, "Cầu thủ"),
+      h(
+        "div",
+        { className: "squad-grid" },
+        (team.squad || []).length
+          ? team.squad.map((player) => h("div", { key: player.id, className: "player-card" }, h("strong", null, player.name), h("span", null, shortPosition(player.position)), h("small", null, player.nationality)))
+          : h("div", { className: "empty-state" }, "Chưa có dữ liệu cầu thủ.")
+      )
+    ),
+    h(StandingsPanel, { groups: data.standings || [], activeGroup: team.group, onGroupChange: () => {} })
+  );
+}
+
+function MatchPage({ data, matchId, onNavigate }) {
+  const match = findMatch(data, matchId);
+  if (!match) return h(NotFoundPage, { title: "Không tìm thấy trận đấu", onNavigate });
+
+  return h(
+    "main",
+    { className: "detail-layout" },
+    h(TeamsPanel, { teams: data.teams || [], onNavigate }),
+    h(
+      "section",
+      { className: "detail-page" },
+      h("button", { className: "back-button", type: "button", onClick: () => onNavigate("/") }, "← Dashboard"),
+      h(
+        "div",
+        { className: `match-detail-card ${match.statusGroup}` },
+        h("div", { className: "match-topline" }, h("div", null, h("p", { className: "eyebrow" }, match.stage || "World Cup"), h("h1", null, match.group || "Match")), h("span", { className: `status-pill ${match.statusGroup}` }, match.statusLabel)),
+        h(MatchTeams, { match, onNavigate, large: true }),
+        h(ScoreButton, { match, onNavigate, large: true }),
+        h("div", { className: "hero-meta" }, h("span", null, formatDateTime(match.kickoffUTC)), h("span", null, match.matchday ? `Matchday ${match.matchday}` : "World Cup"), h("span", null, match.minute))
+      ),
+      h("h2", { className: "section-title" }, "Thông tin trận đấu"),
+      h(
+        "div",
+        { className: "detail-grid" },
+        h(DetailItem, { label: "Status", value: match.statusLabel }),
+        h(DetailItem, { label: "Stage", value: match.stage || "-" }),
+        h(DetailItem, { label: "Group", value: match.group || "-" }),
+        h(DetailItem, { label: "Kickoff", value: formatDateTime(match.kickoffUTC) })
+      )
+    ),
+    h(StandingsPanel, { groups: data.standings || [], activeGroup: match.group, onGroupChange: () => {} })
+  );
+}
+
+function DetailItem({ label, value }) {
+  return h("div", { className: "detail-item" }, h("div", { className: "detail-label" }, label), h("div", { className: "detail-value" }, value));
+}
+
+function NotFoundPage({ title, onNavigate }) {
+  return h("main", { className: "detail-layout single" }, h("section", { className: "detail-page" }, h("button", { className: "back-button", type: "button", onClick: () => onNavigate("/") }, "← Dashboard"), h("div", { className: "empty-state" }, title)));
+}
+
+function Crest({ src, fallback }) {
+  const label = fallback || "WC";
+  if (!src) return h("span", { className: "crest-fallback" }, label);
+  return h("img", { className: "crest", src, alt: label, onError: (event) => event.currentTarget.replaceWith(Object.assign(document.createElement("span"), { className: "crest-fallback", textContent: label })) });
+}
+
+function getNextWindow(matches) {
+  const upcoming = (matches || []).filter((match) => match.statusGroup === "upcoming" && parseDate(match.kickoffUTC)).sort((a, b) => parseDate(a.kickoffUTC) - parseDate(b.kickoffUTC));
+  if (!upcoming.length) return [];
+  const firstTime = parseDate(upcoming[0].kickoffUTC).getTime();
+  const sixHours = 6 * 60 * 60 * 1000;
+  return upcoming.filter((match) => Math.abs(parseDate(match.kickoffUTC).getTime() - firstTime) <= sixHours).slice(0, 2);
+}
+
+function getAllMatches(data) {
+  return [...(data.liveMatches || []), ...(data.upcomingMatches || []), ...(data.finishedMatches || []), ...(data.specialMatches || [])];
+}
+
+function findMatch(data, id) {
+  return getAllMatches(data).find((match) => match.id === id) || null;
+}
+
+function pollDelayMs(meta) {
+  const fallback = Math.max(10, meta?.refreshSeconds || 45) * 1000;
+  const status = effectiveRefreshStatus(meta);
+  if (status === "rate_limited") {
+    const nextAllowed = parseDate(meta?.nextAllowedRefreshAt);
+    if (nextAllowed && nextAllowed.getTime() > Date.now()) {
+      return Math.max(10000, nextAllowed.getTime() - Date.now() + 1000);
+    }
+    return Math.max(fallback, 30000);
   }
-
-  if (!groups.some((group) => group.group === state.activeGroup)) {
-    state.activeGroup = groups[0].group;
+  if (status === "refreshing") {
+    return Math.min(fallback, 5000);
   }
-
-  for (const group of groups) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `group-tab ${group.group === state.activeGroup ? "active" : ""}`;
-    const memberCount = group.memberCount ?? group.rows?.length ?? 0;
-    button.innerHTML = `<span>${escapeHTML(group.group)}</span><strong>${memberCount}</strong>`;
-    button.title = `${group.group}: ${memberCount} đội`;
-    button.addEventListener("click", () => {
-      state.activeGroup = group.group;
-      renderStandings(groups);
-    });
-    tabs.appendChild(button);
+  if (meta?.isStale || status === "stale") {
+    return Math.max(fallback, 30000);
   }
-
-  const active = groups.find((group) => group.group === state.activeGroup) || groups[0];
-  const activeMemberCount = active.memberCount ?? active.rows?.length ?? 0;
-  info.textContent = `${active.group} · ${activeMemberCount} đội trong group`;
-  body.innerHTML = active.rows.length ? active.rows.map((row) => `
-    <tr>
-      <td>${row.position}</td>
-      <td>
-        <span class="standing-team">
-          ${crestMarkup(row.team.crest, row.team.tla)}
-          <strong>${escapeHTML(row.team.tla || row.team.shortName)}</strong>
-        </span>
-      </td>
-      <td>${row.playedGames}</td>
-      <td>${row.won}</td>
-      <td>${row.draw}</td>
-      <td>${row.lost}</td>
-      <td class="${row.goalDifference >= 0 ? "gd-positive" : "gd-negative"}">${formatGoalDiff(row.goalDifference)}</td>
-      <td class="points-cell">${row.points}</td>
-    </tr>
-  `).join("") : `<tr><td colspan="8" class="empty-state">Group này chưa có đội.</td></tr>`;
+  return fallback;
 }
 
-function findSelectedTeam() {
-  return (state.data?.teams || []).find((team) => team.id === state.selectedTeamId) || state.data?.teams?.[0];
+function statusClass(status = "idle") {
+  return status.replace(/_/g, "-");
 }
 
-function crestMarkup(src, fallback) {
-  const label = escapeHTML(fallback || "WC");
-  if (!src) return `<span class="crest-fallback">${label}</span>`;
-  return `<img class="crest" src="${escapeAttr(src)}" alt="${label}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {className: 'crest-fallback', textContent: '${label}'}))" />`;
+function statusLabel(status = "idle") {
+  switch (status) {
+    case "refreshing":
+      return "Đang cập nhật";
+    case "rate_limited":
+      return "Hết quota";
+    case "stale":
+      return "Dữ liệu cũ";
+    case "error":
+      return "Lỗi refresh";
+    default:
+      return "Ổn định";
+  }
+}
+
+function refreshTitle(meta) {
+  const status = effectiveRefreshStatus(meta);
+  if (status === "refreshing") return "Backend đang cập nhật";
+  if (status === "rate_limited" && isFuture(meta?.nextAllowedRefreshAt)) {
+    return `Chờ tới ${formatDateTime(meta?.nextAllowedRefreshAt)}`;
+  }
+  return "Cập nhật ngay";
+}
+
+function isFuture(value) {
+  const date = parseDate(value);
+  return Boolean(date && date.getTime() > Date.now());
+}
+
+function parseRoute(path = window.location.pathname) {
+  const teamMatch = path.match(/^\/(?:server\/)?team\/(\d+)\/?$/);
+  if (teamMatch) return { name: "team", id: Number(teamMatch[1]) };
+  const matchMatch = path.match(/^\/(?:server\/)?match\/(\d+)\/?$/);
+  if (matchMatch) return { name: "match", id: Number(matchMatch[1]) };
+  return { name: "dashboard" };
+}
+
+function parseDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function formatDateTime(value) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = parseDate(value);
+  if (!date) return "-";
   return new Intl.DateTimeFormat("vi-VN", {
     weekday: "short",
     day: "2-digit",
@@ -297,9 +547,8 @@ function formatDateTime(value) {
 }
 
 function formatShortDate(value) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = parseDate(value);
+  if (!date) return "-";
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -316,24 +565,22 @@ function shortPosition(position = "") {
   return position
     .replace("Goalkeeper", "GK")
     .replace("Defender", "DEF")
+    .replace("Defence", "DEF")
     .replace("Midfielder", "MID")
+    .replace("Midfield", "MID")
     .replace("Attacker", "FWD")
-    .replace("Forward", "FWD");
+    .replace("Forward", "FWD")
+    .replace("Offence", "FWD");
 }
 
-function renderLoadError(error) {
-  $("#currentMatch").innerHTML = `<div class="empty-state">Không tải được dữ liệu: ${escapeHTML(error.message)}</div>`;
-}
+function effectiveRefreshStatus(meta) {
+  const status = meta?.refreshStatus || "idle";
+  if (status !== "rate_limited") return status;
 
-function escapeHTML(value = "") {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+  const nextAllowed = parseDate(meta?.nextAllowedRefreshAt);
+  if (nextAllowed && nextAllowed.getTime() <= Date.now()) {
+    return meta?.isStale ? "stale" : "idle";
+  }
 
-function escapeAttr(value = "") {
-  return escapeHTML(value).replaceAll("`", "&#096;");
+  return status;
 }
