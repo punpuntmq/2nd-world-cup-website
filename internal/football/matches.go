@@ -37,11 +37,13 @@ func SortedMatches(matches map[int]Match) []Match {
 		bKickoff := matchKickoffTime(b)
 		switch {
 		case aKickoff.IsZero() && bKickoff.IsZero():
-			return false
+			return ids[i] < ids[j]
 		case aKickoff.IsZero():
 			return false
 		case bKickoff.IsZero():
 			return true
+		case aKickoff.Equal(bKickoff):
+			return ids[i] < ids[j]
 		default:
 			return aKickoff.Before(bKickoff)
 		}

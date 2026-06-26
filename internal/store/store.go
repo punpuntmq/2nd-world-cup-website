@@ -30,7 +30,6 @@ type MemoryStore struct {
 	refreshInterval time.Duration
 	quota           QuotaManager
 	raw             football.RawState
-	view            ViewState
 	refreshing      bool
 	refreshStatus   string
 	lastRefreshAt   time.Time
@@ -51,7 +50,6 @@ func NewMemoryStore(client FootballClient, options StoreOptions) *MemoryStore {
 		refreshInterval: refreshInterval,
 		quota:           options.Quota,
 		refreshStatus:   refreshStatusIdle,
-		view:            ViewState{},
 	}
 	return s
 }
@@ -74,7 +72,14 @@ func (s *MemoryStore) InitialRefresh(ctx context.Context) error {
 }
 
 func (s *MemoryStore) Refresh(ctx context.Context) error {
-	return s.refresh(ctx, RefreshSnapshot)
+	request := RefreshSnapshot
+
+	isEmpty := len(s.raw.Matches) == 0 && len(s.raw.Teams) == 0
+
+	if isEmpty {
+		request = InitialSnapshot
+	}
+	return s.refresh(ctx, request)
 }
 
 func (s *MemoryStore) refresh(ctx context.Context, kind RequestKind) error {
@@ -95,7 +100,7 @@ func (s *MemoryStore) refresh(ctx context.Context, kind RequestKind) error {
 		nextAllowedAt := s.nextAllowedAt
 		s.mu.Unlock()
 		log.Printf("refresh skipped because rate limited; next allowed at %s", nextAllowedAt.Format(time.RFC3339))
-		return nil
+		return ErrRateLimited
 	}
 
 	s.refreshing = true
@@ -118,7 +123,9 @@ func (s *MemoryStore) refresh(ctx context.Context, kind RequestKind) error {
 		log.Printf("refresh failed: %v", err)
 		return err
 	}
-
+	if raw.Teams == nil {
+		raw.Teams = s.raw.Teams
+	}
 	s.raw = raw
 	s.lastError = ""
 	s.refreshStatus = refreshStatusIdle
@@ -128,7 +135,6 @@ func (s *MemoryStore) refresh(ctx context.Context, kind RequestKind) error {
 		s.lastRefreshAt = now
 	}
 
-	s.view = MapViewState(s.raw, s.refreshInterval)
 	log.Printf("refresh succeeded: %d matches, %d teams", len(s.raw.Matches), len(s.raw.Teams))
 	return nil
 }
@@ -136,11 +142,27 @@ func (s *MemoryStore) refresh(ctx context.Context, kind RequestKind) error {
 func (s *MemoryStore) Snapshot() ViewState {
 	now := time.Now().UTC()
 
+	// Copy raw data và refresh meta dưới sự bảo vệ của RLock.
+	// Nhả khóa ngay sau khi copy để không block refresh goroutine.
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	raw := s.raw
+	refreshInterval := s.refreshInterval
+	refreshMeta := s.refreshMetaLocked(now)
+	s.mu.RUnlock()
 
-	view := s.view
-	s.applyRefreshMetaLocked(&view, now)
+	// Tính toán ViewState ĐỘNG dựa trên raw data + thời gian hiện tại.
+	// MapViewState là pure function, an toàn khi chạy ngoài lock.
+	view := MapViewState(raw, refreshInterval)
+
+	// Đắp refresh meta vào view
+	view.Meta.RefreshStatus = refreshMeta.Status
+	view.Meta.RemainingCalls = refreshMeta.RemainingCalls
+	view.Meta.QuotaLimit = refreshMeta.QuotaLimit
+	view.Meta.NextAllowedRefreshAt = formatTime(refreshMeta.NextAllowedRefreshAt)
+	view.Meta.LastRefreshAt = formatTime(refreshMeta.LastRefreshAt)
+	view.Meta.LastError = refreshMeta.LastError
+	view.Meta.IsStale = refreshMeta.IsStale
+
 	return view
 }
 
@@ -168,15 +190,4 @@ func (s *MemoryStore) refreshMetaLocked(now time.Time) RefreshMeta {
 		LastRefreshAt:        s.lastRefreshAt,
 		LastError:            s.lastError,
 	}
-}
-
-func (s *MemoryStore) applyRefreshMetaLocked(view *ViewState, now time.Time) {
-	refreshMeta := s.refreshMetaLocked(now)
-	view.Meta.RefreshStatus = refreshMeta.Status
-	view.Meta.RemainingCalls = refreshMeta.RemainingCalls
-	view.Meta.QuotaLimit = refreshMeta.QuotaLimit
-	view.Meta.NextAllowedRefreshAt = formatTime(refreshMeta.NextAllowedRefreshAt)
-	view.Meta.LastRefreshAt = formatTime(refreshMeta.LastRefreshAt)
-	view.Meta.LastError = refreshMeta.LastError
-	view.Meta.IsStale = refreshMeta.IsStale
 }

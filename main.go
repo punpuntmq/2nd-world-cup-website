@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"worldcup-realtime/internal/config"
 	"worldcup-realtime/internal/football"
@@ -41,11 +42,26 @@ func main() {
 		log.Printf("initial refresh used fallback or failed: %v", err)
 	}
 	go memory.Run(ctx)
-
 	app := server.New(cfg, memory)
 	addr := ":" + cfg.Port
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: app.Router(),
+	}
+
+	go func() {
+		<-ctx.Done()
+		log.Println("Received termination signal, shutting down server...")
+		
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Server shutdown error: %v", err)
+		}
+	}()
+
 	log.Printf("World Cup realtime dashboard listening on http://localhost%s", addr)
-	if err := http.ListenAndServe(addr, app.Router()); err != nil && err != http.ErrServerClosed {
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }
