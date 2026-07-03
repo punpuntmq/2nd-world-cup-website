@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -11,12 +9,10 @@ import (
 	"worldcup-realtime/internal/config"
 	"worldcup-realtime/internal/service"
 	"worldcup-realtime/internal/sse"
-	"worldcup-realtime/internal/store"
 )
 
 type WorldCupService interface {
 	State() service.ViewState
-	Refresh(context.Context) (bool, error)
 	Team(int) (service.TeamView, bool)
 	Match(int) (service.MatchView, bool)
 	Matches() service.MatchesView

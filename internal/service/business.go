@@ -173,10 +173,13 @@ func buildStandings(matches []football.Match, summaries map[int]football.TeamSum
 		if home == nil || away == nil || !isFinishedStatus(match.Status) {
 			continue
 		}
-		if match.Score.FullTime.Home == nil || match.Score.FullTime.Away == nil {
+		if match.Score.FullTime.Home != nil && match.Score.FullTime.Away != nil {
+			applyResult(home, away, *match.Score.FullTime.Home, *match.Score.FullTime.Away)
 			continue
 		}
-		applyResult(home, away, *match.Score.FullTime.Home, *match.Score.FullTime.Away)
+		if match.Status == "AWARDED" && match.Score.Winner != nil {
+			applyAwardedResult(home, away, *match.Score.Winner)
+		}
 	}
 
 	groupNames := make([]string, 0, len(groups))
@@ -256,6 +259,26 @@ func applyResult(home, away *standingAccumulator, homeGoals, awayGoals int) {
 
 	home.goalDifference = home.goalsFor - home.goalsAgainst
 	away.goalDifference = away.goalsFor - away.goalsAgainst
+}
+
+func applyAwardedResult(home, away *standingAccumulator, winner string) {
+	home.played++
+	away.played++
+
+	switch strings.ToUpper(winner) {
+	case "HOME_TEAM":
+		home.won++
+		home.points += 3
+		home.form = append(home.form, "W")
+		away.lost++
+		away.form = append(away.form, "L")
+	case "AWAY_TEAM":
+		away.won++
+		away.points += 3
+		away.form = append(away.form, "W")
+		home.lost++
+		home.form = append(home.form, "L")
+	}
 }
 
 func (row *standingAccumulator) view(position int) StandingRowView {
