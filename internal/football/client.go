@@ -14,20 +14,12 @@ import (
 	"time"
 )
 
-type Mode string
-
-const (
-	Fake Mode = "Fake"
-	Real Mode = "Real"
-)
 
 type ClientOptions struct {
 	BaseURL         string
 	Token           []string
 	CompetitionCode string
 	Season          string
-	FakeDir         string
-	ForceFake       bool
 }
 
 type Client struct {
@@ -35,11 +27,9 @@ type Client struct {
 	tokens          []string
 	competitionCode string
 	season          string
-	fakeDir         string
 	httpClient      *http.Client
 	token_use       string
 	mu              sync.Mutex
-	mode            Mode
 }
 
 
@@ -74,11 +64,8 @@ func NewClient(options ClientOptions) *Client {
 
 	tokens := options.Token
 	tokenUse := ""
-	var mode Mode = Real
-	if len(tokens) != 0 && !options.ForceFake {
+	if len(tokens) != 0 {
 		tokenUse = tokens[0]
-	} else {
-		mode = Fake
 	}
 
 	return &Client{
@@ -86,12 +73,10 @@ func NewClient(options ClientOptions) *Client {
 		tokens:          tokens,
 		competitionCode: competitionCode,
 		season:          season,
-		fakeDir:         options.FakeDir,
 		httpClient: &http.Client{
 			Timeout: 12 * time.Second,
 		},
 		token_use: tokenUse,
-		mode:      mode,
 	}
 }
 
@@ -117,22 +102,13 @@ func (c *Client) Fetch(ctx context.Context, requests []Request) (RawState, error
 		raw RawState
 		err error
 	)
-	switch c.mode {
-	case Fake:
-		{
-			raw, err = c.FetchFake(ctx)
-		}
-	case Real:
-		{
-			for _, req := range requests {
-				if err := c.callAPI(
-					ctx,
-					req.Endpoint.URL(c),
-					req.Target(&raw),
-				); err != nil {
-					return RawState{}, err
-				}
-			}
+	for _, req := range requests {
+		if err := c.callAPI(
+			ctx,
+			req.Endpoint.URL(c),
+			req.Target(&raw),
+		); err != nil {
+			return RawState{}, err
 		}
 	}
 	if err == nil {
@@ -142,63 +118,6 @@ func (c *Client) Fetch(ctx context.Context, requests []Request) (RawState, error
 		}
 	}
 	return raw, err
-}
-
-func (c *Client) FetchFake(ctx context.Context) (RawState, error) {
-	select {
-	case <-ctx.Done():
-		return RawState{}, ctx.Err()
-	default:
-	}
-
-	var (
-		raw            RawState
-		matchesPayload struct {
-			Area        Area        `json:"area"`
-			Competition Competition `json:"competition"`
-			Season      Season      `json:"season"`
-			Matches     []Match     `json:"matches"`
-		}
-		teamsPayload struct {
-			Area        Area        `json:"area"`
-			Competition Competition `json:"competition"`
-			Season      Season      `json:"season"`
-			Teams       []Team      `json:"teams"`
-		}
-	)
-	if err := readJSON(filepath.Join(c.fakeDir, "matches.json"), &matchesPayload); err != nil {
-		return RawState{}, err
-	}
-	if err := readJSON(filepath.Join(c.fakeDir, "teams.json"), &teamsPayload); err != nil {
-		return RawState{}, err
-	}
-	raw.Matches = MatchesByID(matchesPayload.Matches)
-	raw.Teams = teamsPayload.Teams
-	raw.Area = matchesPayload.Area
-	raw.Competition = matchesPayload.Competition
-	raw.Season = matchesPayload.Season
-	if raw.Area.ID == 0 {
-		raw.Area = teamsPayload.Area
-	}
-	if raw.Competition.ID == 0 {
-		raw.Competition = teamsPayload.Competition
-	}
-	if raw.Season.ID == 0 {
-		raw.Season = teamsPayload.Season
-	}
-	raw.Source = "fake-data"
-	return raw, nil
-}
-
-func readJSON(path string, target interface{}) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("read %s: %w", path, err)
-	}
-	if err := json.Unmarshal(data, target); err != nil {
-		return fmt.Errorf("parse %s: %w", path, err)
-	}
-	return nil
 }
 
 func (c *Client) tryRequest(ctx context.Context, requestURL string, target interface{}, token string) error {

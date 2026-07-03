@@ -28,8 +28,6 @@ func New(cfg config.Config) *App {
 		Token:           cfg.Token,
 		CompetitionCode: cfg.CompetitionCode,
 		Season:          cfg.Season,
-		FakeDir:         cfg.FakeDir,
-		ForceFake:       cfg.ForceFake,
 	})
 	memoryStore := store.NewMemoryStore()
 	quota := store.NewFixedWindowQuota(cfg.QuotaLimit, cfg.QuotaWindow)

@@ -27,7 +27,7 @@ func parseTokens(s string) []string {
 type Config struct {
 	RootDir         string
 	WebDir          string
-	FakeDir         string
+
 	BaseURL         string
 	Token           []string
 	CompetitionCode string
@@ -37,19 +37,17 @@ type Config struct {
 	RefreshTimeout  time.Duration
 	QuotaLimit      int
 	QuotaWindow     time.Duration
-	ForceFake       bool
+
 	AllowedOrigins  []string
 }
 
 func Load(rootDir string) Config {
 	values := readTokenEnv(filepath.Join(rootDir, "token.env"))
 	tokens := parseTokens(getValue(values, "FOOTBALL_DATA_TOKEN", ""))
-	forceFake := getBool(values, "USE_FAKE_DATA", true)
 
 	cfg := Config{
 		RootDir:         rootDir,
 		WebDir:          filepath.Join(rootDir, "web"),
-		FakeDir:         filepath.Join(rootDir, "fake-data"),
 		BaseURL:         getValue(values, "FOOTBALL_API_BASE_URL", ""),
 		Token:           tokens,
 		CompetitionCode: getValue(values, "FOOTBALL_DATA_COMPETITION", ""),
@@ -57,9 +55,8 @@ func Load(rootDir string) Config {
 		Port:            getValue(values, "PORT", "8080"),
 		RefreshInterval: time.Duration(getInt(values, "REFRESH_SECONDS", 30)) * time.Second,
 		RefreshTimeout:  time.Duration(getInt(values, "REFRESH_TIMEOUT_SECONDS", 30)) * time.Second,
-		QuotaLimit:      effectiveQuotaLimit(tokens, forceFake),
+		QuotaLimit:      effectiveQuotaLimit(tokens),
 		QuotaWindow:     time.Duration(getInt(values, "FOOTBALL_API_QUOTA_WINDOW_SECONDS", 60)) * time.Second,
-		ForceFake:       forceFake,
 		AllowedOrigins:  parseList(getValue(values, "CORS_ALLOWED_ORIGINS", "*")),
 	}
 	return cfg
@@ -77,8 +74,8 @@ func parseList(s string) []string {
 	return values
 }
 
-func effectiveQuotaLimit(tokens []string, forceFake bool) int {
-	if forceFake || len(tokens) == 0 {
+func effectiveQuotaLimit(tokens []string) int {
+	if len(tokens) == 0 {
 		return 1000
 	}
 	return len(tokens) * 10
