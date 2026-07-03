@@ -42,17 +42,7 @@ type Client struct {
 	mode            Mode
 }
 
-func (c *Client) currentToken() string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 
-	if c.token_use != "" {
-		return c.token_use
-	}
-
-	c.token_use = c.tokens[0]
-	return c.token_use
-}
 
 func (c *Client) rotateToken() {
 	c.mu.Lock()
