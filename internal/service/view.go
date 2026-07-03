@@ -35,15 +35,7 @@ type MetaView struct {
 	IsStale              bool   `json:"isStale"`
 }
 
-type RefreshMeta struct {
-	Status               string
-	RemainingCalls       int
-	QuotaLimit           int
-	NextAllowedRefreshAt time.Time
-	LastRefreshAt        time.Time
-	LastError            string
-	IsStale              bool
-}
+
 
 type TeamView struct {
 	ID        int          `json:"id"`
