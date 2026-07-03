@@ -39,6 +39,9 @@ func NewMemoryStore() *MemoryStore {
 	}
 }
 
+// Snapshot returns a shallow clone of the current state.
+// Callers MUST NOT mutate pointer fields (e.g. Match.Group, Match.Matchday)
+// or slice elements (e.g. Team.Squad) of the returned data.
 func (s *MemoryStore) Snapshot(now time.Time) Snapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -81,6 +84,8 @@ func (s *MemoryStore) MarkError(message string) {
 	s.refresh.LastError = message
 }
 
+// Save updates the store and returns a shallow clone of the new state.
+// Callers MUST NOT mutate pointer fields or slice elements of the returned data.
 func (s *MemoryStore) Save(raw football.RawState, now time.Time) football.RawState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
