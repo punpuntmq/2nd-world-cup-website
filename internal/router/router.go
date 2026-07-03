@@ -22,7 +22,7 @@ func New(cfg config.Config, h *handler.Handler) *gin.Engine {
 		api.GET("/health", h.Health)
 		api.GET("/state", h.State)
 		api.GET("/events", h.Events)
-		api.POST("/refresh", h.Refresh)
+
 		api.GET("/team/:id", h.Team)
 		api.GET("/match/:id", h.Match)
 		api.GET("/matches", h.Matches)

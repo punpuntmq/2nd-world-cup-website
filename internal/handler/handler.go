@@ -48,33 +48,6 @@ func (h *Handler) Events(c *gin.Context) {
 	h.hub.ServeHTTP(c.Writer, c.Request, h.service.State())
 }
 
-func (h *Handler) Refresh(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), h.cfg.RefreshTimeout)
-	defer cancel()
-
-	changed, err := h.service.Refresh(ctx)
-	state := h.service.State()
-	if changed {
-		h.hub.BroadcastState(state)
-	}
-
-	if err == nil {
-		c.JSON(http.StatusOK, gin.H{
-			"ok":      true,
-			"changed": changed,
-			"error":   "",
-			"state":   state,
-		})
-		return
-	}
-
-	c.JSON(refreshStatusCode(err), gin.H{
-		"ok":      false,
-		"changed": changed,
-		"error":   err.Error(),
-		"state":   state,
-	})
-}
 
 func (h *Handler) Team(c *gin.Context) {
 	id, ok := parseID(c.Param("id"))
@@ -108,20 +81,6 @@ func (h *Handler) Matches(c *gin.Context) {
 	c.JSON(http.StatusOK, h.service.Matches())
 }
 
-func refreshStatusCode(err error) int {
-	switch {
-	case errors.Is(err, store.ErrRefreshInProgress):
-		return http.StatusConflict
-	case errors.Is(err, store.ErrRateLimited):
-		return http.StatusTooManyRequests
-	case errors.Is(err, context.DeadlineExceeded):
-		return http.StatusGatewayTimeout
-	case errors.Is(err, context.Canceled):
-		return http.StatusRequestTimeout
-	default:
-		return http.StatusInternalServerError
-	}
-}
 
 func parseID(value string) (int, bool) {
 	id, err := strconv.Atoi(value)
