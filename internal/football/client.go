@@ -221,10 +221,7 @@ func (c *Client) tryRequest(ctx context.Context, requestURL string, target inter
 	if token != "" {
 		req.Header.Set("X-Auth-Token", token)
 	}
-	req.Header.Set("X-Unfold-Lineups", "true")
-	req.Header.Set("X-Unfold-Bookings", "true")
-	req.Header.Set("X-Unfold-Subs", "true")
-	req.Header.Set("X-Unfold-Goals", "true")
+
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
