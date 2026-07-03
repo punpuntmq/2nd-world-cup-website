@@ -80,12 +80,13 @@ type Score struct {
 }
 
 type Match struct {
-	ID       int     `json:"id"`
-	UTCDate  string  `json:"utcDate"`
-	Status   string  `json:"status"`
-	Matchday *int    `json:"matchday"`
-	Stage    string  `json:"stage"`
-	Group    *string `json:"group"`
+	ID          int     `json:"id"`
+	UTCDate     string  `json:"utcDate"`
+	Status      string  `json:"status"`
+	Matchday    *int    `json:"matchday"`
+	Stage       string  `json:"stage"`
+	Group       *string `json:"group"`
+	LastUpdated string  `json:"lastUpdated"`
 
 	HomeTeam TeamSummary `json:"homeTeam"`
 	AwayTeam TeamSummary `json:"awayTeam"`

@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"log"
-	"reflect"
 	"sync"
 	"time"
 
@@ -30,7 +28,9 @@ type WorldCupService struct {
 	mu         sync.Mutex
 	refreshing bool
 
-	lastFingerprint string
+	cachedView   ViewState
+	cachedViewAt time.Time
+	cachedViewMu sync.RWMutex
 }
 
 func NewWorldCupService(client FootballClient, snapshotStore *store.MemoryStore, options Options) *WorldCupService {
@@ -64,7 +64,24 @@ func (s *WorldCupService) Refresh(ctx context.Context) (bool, error) {
 func (s *WorldCupService) State() ViewState {
 	now := time.Now().UTC()
 	snapshot := s.store.Snapshot(now)
-	view := MapViewState(snapshot.Raw, s.refreshInterval)
+	
+	s.cachedViewMu.RLock()
+	cached := s.cachedView
+	cachedAt := s.cachedViewAt
+	s.cachedViewMu.RUnlock()
+
+	var view ViewState
+	// If cached view is from the same refresh cycle (fetchedAt matches), use it
+	if !cachedAt.IsZero() && cachedAt.Equal(snapshot.Raw.FetchedAt) {
+		view = cached
+	} else {
+		view = MapViewState(snapshot.Raw, s.refreshInterval)
+		s.cachedViewMu.Lock()
+		s.cachedView = view
+		s.cachedViewAt = snapshot.Raw.FetchedAt
+		s.cachedViewMu.Unlock()
+	}
+
 	s.applyRefreshMeta(&view, snapshot.Refresh, now)
 	return view
 }
@@ -137,7 +154,21 @@ func (s *WorldCupService) refresh(ctx context.Context, kind RequestKind) (bool, 
 	}
 
 	saved := s.store.Save(raw, now)
-	changed := s.rememberChanged(saved, rawChanged(before, saved))
+	changed := rawChanged(before, saved)
+	
+	s.cachedViewMu.RLock()
+	firstRun := s.cachedViewAt.IsZero()
+	s.cachedViewMu.RUnlock()
+
+	if firstRun || changed {
+		view := MapViewState(saved, s.refreshInterval)
+		s.cachedViewMu.Lock()
+		s.cachedView = view
+		s.cachedViewAt = saved.FetchedAt
+		s.cachedViewMu.Unlock()
+		changed = true
+	}
+
 	log.Printf("refresh succeeded: %d matches, %d teams, changed=%t", len(saved.Matches), len(saved.Teams), changed)
 	return changed, nil
 }
@@ -170,37 +201,11 @@ func (s *WorldCupService) applyRefreshMeta(view *ViewState, meta store.RefreshMe
 	view.Meta.IsStale = isStale(meta.LastRefreshAt, now, s.refreshInterval)
 }
 
-func (s *WorldCupService) rememberChanged(raw football.RawState, rawWasChanged bool) bool {
-	fingerprint := viewFingerprint(MapViewState(raw, s.refreshInterval))
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	changed := rawWasChanged || s.lastFingerprint == "" || s.lastFingerprint != fingerprint
-	s.lastFingerprint = fingerprint
-	return changed
-}
-
 func isStale(lastRefreshAt time.Time, now time.Time, interval time.Duration) bool {
 	if lastRefreshAt.IsZero() || interval <= 0 {
 		return false
 	}
 	return now.After(lastRefreshAt.Add(interval * 3))
-}
-
-func rawChanged(before, after football.RawState) bool {
-	before.FetchedAt = time.Time{}
-	after.FetchedAt = time.Time{}
-	return !reflect.DeepEqual(before, after)
-}
-
-func viewFingerprint(view ViewState) string {
-	view.Meta = MetaView{}
-	data, err := json.Marshal(view)
-	if err != nil {
-		return ""
-	}
-	return string(data)
 }
 
 func findMatch(view ViewState, id int) (MatchView, bool) {
