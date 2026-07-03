@@ -1,28 +1,5 @@
 import { formatDateTime, parseDate } from "./date.js";
 
-export function pollDelayMs(meta) {
-  const fallback = Math.max(10, meta?.refreshSeconds || 45) * 1000;
-  const status = effectiveRefreshStatus(meta);
-
-  if (status === "rate_limited") {
-    const nextAllowed = parseDate(meta?.nextAllowedRefreshAt);
-    if (nextAllowed && nextAllowed.getTime() > Date.now()) {
-      return Math.max(10000, nextAllowed.getTime() - Date.now() + 1000);
-    }
-    return Math.max(fallback, 30000);
-  }
-
-  if (status === "refreshing") {
-    return Math.min(fallback, 5000);
-  }
-
-  if (meta?.isStale || status === "stale") {
-    return Math.max(fallback, 30000);
-  }
-
-  return fallback;
-}
-
 export function statusClass(status = "idle") {
   return status.replace(/_/g, "-");
 }

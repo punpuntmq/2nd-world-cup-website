@@ -38,6 +38,7 @@ type Config struct {
 	QuotaLimit      int
 	QuotaWindow     time.Duration
 	ForceFake       bool
+	AllowedOrigins  []string
 }
 
 func Load(rootDir string) Config {
@@ -59,13 +60,26 @@ func Load(rootDir string) Config {
 		QuotaLimit:      effectiveQuotaLimit(tokens, forceFake),
 		QuotaWindow:     time.Duration(getInt(values, "FOOTBALL_API_QUOTA_WINDOW_SECONDS", 60)) * time.Second,
 		ForceFake:       forceFake,
+		AllowedOrigins:  parseList(getValue(values, "CORS_ALLOWED_ORIGINS", "*")),
 	}
 	return cfg
 }
 
+func parseList(s string) []string {
+	parts := strings.Split(s, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value != "" {
+			values = append(values, value)
+		}
+	}
+	return values
+}
+
 func effectiveQuotaLimit(tokens []string, forceFake bool) int {
 	if forceFake || len(tokens) == 0 {
-		return 1
+		return 1000
 	}
 	return len(tokens) * 10
 }

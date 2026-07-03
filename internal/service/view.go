@@ -1,4 +1,4 @@
-package store
+package service
 
 import "time"
 
@@ -90,6 +90,14 @@ type MatchView struct {
 	Group        string       `json:"group"`
 	Matchday     string       `json:"matchday"`
 	SortTimeUnix int64        `json:"-"`
+}
+
+type MatchesView struct {
+	Live     []MatchView `json:"live"`
+	Upcoming []MatchView `json:"upcoming"`
+	Finished []MatchView `json:"finished"`
+	Special  []MatchView `json:"special"`
+	All      []MatchView `json:"all"`
 }
 
 type HighlightView struct {

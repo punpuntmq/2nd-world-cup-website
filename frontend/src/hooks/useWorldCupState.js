@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchWorldCupState, refreshWorldCupState } from "../api/worldCupApi.js";
-import { pollDelayMs } from "../utils/status.js";
+import { fetchWorldCupState, refreshWorldCupState, subscribeWorldCupEvents } from "../api/worldCupApi.js";
 
 export function useWorldCupState() {
   const [data, setData] = useState(null);
@@ -11,29 +10,49 @@ export function useWorldCupState() {
 
   useEffect(() => {
     let alive = true;
-    let timer = 0;
+    let openedOnce = false;
+
+    const applyData = (nextData) => {
+      setData(nextData);
+      setError("");
+      setActiveGroup((current) => current || nextData.standings?.[0]?.group || "");
+    };
 
     const load = async () => {
       try {
         const nextData = await fetchWorldCupState();
         if (!alive) return;
 
-        setData(nextData);
-        setError("");
-        setActiveGroup((current) => current || nextData.standings?.[0]?.group || "");
-        timer = window.setTimeout(load, pollDelayMs(nextData.meta));
+        applyData(nextData);
       } catch (err) {
         if (!alive) return;
 
         setError(err.message);
-        timer = window.setTimeout(load, 30000);
       }
     };
 
     load();
+    const unsubscribe = subscribeWorldCupEvents({
+      onOpen: () => {
+        if (!alive) return;
+        if (openedOnce) {
+          load();
+        }
+        openedOnce = true;
+      },
+      onState: (nextData) => {
+        if (!alive) return;
+        applyData(nextData);
+      },
+      onError: () => {
+        if (!alive) return;
+        setError("Mất kết nối realtime, đang kết nối lại...");
+      },
+    });
+
     return () => {
       alive = false;
-      window.clearTimeout(timer);
+      unsubscribe();
     };
   }, []);
 
