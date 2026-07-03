@@ -12,7 +12,6 @@ type RequestKind string
 const (
 	InitialSnapshot RequestKind = "initial_snapshot"
 	RefreshSnapshot RequestKind = "refresh_snapshot"
-	MatchDetail     RequestKind = "match_detail"
 )
 
 type RequestPlan struct {
@@ -28,8 +27,6 @@ func BuildRequestPlan(kind RequestKind, matchID int) RequestPlan {
 		requests = StaticCompetitionRequests()
 	case RefreshSnapshot:
 		requests = RefreshCompetitionRequest()
-	default:
-		requests = StaticCompetitionRequests()
 	}
 	return RequestPlan{
 		Kind:     kind,

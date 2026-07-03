@@ -29,19 +29,6 @@ func (e CompetitionEndpoint) URL(
 	)
 }
 
-type Live struct {
-	MatchID string
-}
-
-func (e Live) URL(
-	c *Client,
-) string {
-
-	return c.liveTimeEndpoint(
-		e.MatchID,
-	)
-}
-
 func (c *Client) competitionEndpoint(resource string) string {
 	endpoint := path.Join("competitions", c.competitionCode, resource)
 	if c.season == "" {
@@ -52,6 +39,4 @@ func (c *Client) competitionEndpoint(resource string) string {
 	return endpoint + "?" + values.Encode()
 }
 
-func (c *Client) liveTimeEndpoint(matchID string) string {
-	return path.Join("matches", matchID)
-}
+
