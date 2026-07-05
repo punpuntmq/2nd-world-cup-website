@@ -1,4 +1,4 @@
-import { formatDateTime, parseDate } from "./date.js";
+import { parseDate } from "./date.js";
 
 export function statusClass(status = "idle") {
   return status.replace(/_/g, "-");
@@ -19,14 +19,7 @@ export function statusLabel(status = "idle") {
   }
 }
 
-export function refreshTitle(meta) {
-  const status = effectiveRefreshStatus(meta);
-  if (status === "refreshing") return "Backend đang cập nhật";
-  if (status === "rate_limited" && isFuture(meta?.nextAllowedRefreshAt)) {
-    return `Chờ tới ${formatDateTime(meta?.nextAllowedRefreshAt)}`;
-  }
-  return "Cập nhật ngay";
-}
+
 
 export function isFuture(value) {
   const date = parseDate(value);

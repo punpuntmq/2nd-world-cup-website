@@ -10,12 +10,7 @@ export async function fetchWorldCupState() {
   return response.json();
 }
 
-export async function refreshWorldCupState() {
-  const response = await fetch(apiURL("/api/refresh"), { method: "POST" });
-  const payload = await response.json();
-  if (!response.ok && !payload.state) throw new Error(payload.error || `HTTP ${response.status}`);
-  return payload;
-}
+
 
 export function subscribeWorldCupEvents({ onOpen, onState, onError }) {
   const source = new EventSource(apiURL("/api/events"));

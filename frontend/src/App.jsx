@@ -13,8 +13,6 @@ export default function App() {
     error,
     activeGroup,
     scheduleFilter,
-    isRefreshing,
-    refreshNow,
     setActiveGroup,
     setScheduleFilter,
   } = useWorldCupState();
@@ -32,8 +30,6 @@ export default function App() {
       <Topbar
         meta={data.meta}
         error={error}
-        isRefreshing={isRefreshing}
-        onRefresh={refreshNow}
         onNavigate={navigate}
       />
       <StatusBanner meta={data.meta} error={error} />

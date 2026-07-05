@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { fetchWorldCupState, refreshWorldCupState, subscribeWorldCupEvents } from "../api/worldCupApi.js";
+import { fetchWorldCupState, subscribeWorldCupEvents } from "../api/worldCupApi.js";
 
 export function useWorldCupState() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [activeGroup, setActiveGroup] = useState("");
   const [scheduleFilter, setScheduleFilter] = useState("all");
-  const [isRefreshing, setRefreshing] = useState(false);
+
 
   useEffect(() => {
     let alive = true;
@@ -56,26 +56,14 @@ export function useWorldCupState() {
     };
   }, []);
 
-  const refreshNow = async () => {
-    setRefreshing(true);
-    try {
-      const payload = await refreshWorldCupState();
-      setData(payload.state);
-      setError(payload.error || "");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+
 
   return {
     data,
     error,
     activeGroup,
     scheduleFilter,
-    isRefreshing,
-    refreshNow,
+
     setActiveGroup,
     setScheduleFilter,
   };
