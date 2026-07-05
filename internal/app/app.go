@@ -32,11 +32,12 @@ func New(cfg config.Config) *App {
 	memoryStore := store.NewMemoryStore()
 	quota := store.NewFixedWindowQuota(cfg.QuotaLimit, cfg.QuotaWindow)
 	worldCupService := service.NewWorldCupService(client, memoryStore, service.Options{
-		RefreshInterval: cfg.RefreshInterval,
-		Quota:           quota,
+		LiveRefreshInterval: cfg.LiveRefreshInterval,
+		IdleRefreshInterval: cfg.IdleRefreshInterval,
+		Quota:               quota,
 	})
 	hub := sse.NewHub()
-	refreshScheduler := scheduler.New(worldCupService, hub, cfg.RefreshInterval)
+	refreshScheduler := scheduler.New(worldCupService, hub, cfg.LiveRefreshInterval, cfg.IdleRefreshInterval)
 	httpHandler := handler.New(cfg, worldCupService, hub)
 
 	return &App{

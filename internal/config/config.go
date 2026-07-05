@@ -33,8 +33,9 @@ type Config struct {
 	CompetitionCode string
 	Season          string
 	Port            string
-	RefreshInterval time.Duration
-	RefreshTimeout  time.Duration
+	LiveRefreshInterval time.Duration
+	IdleRefreshInterval time.Duration
+	RefreshTimeout      time.Duration
 	QuotaLimit      int
 	QuotaWindow     time.Duration
 
@@ -53,8 +54,9 @@ func Load(rootDir string) Config {
 		CompetitionCode: getValue(values, "FOOTBALL_DATA_COMPETITION", ""),
 		Season:          getValue(values, "FOOTBALL_DATA_SEASON", ""),
 		Port:            getValue(values, "PORT", "8080"),
-		RefreshInterval: time.Duration(getInt(values, "REFRESH_SECONDS", 30)) * time.Second,
-		RefreshTimeout:  time.Duration(getInt(values, "REFRESH_TIMEOUT_SECONDS", 30)) * time.Second,
+		LiveRefreshInterval: time.Duration(getInt(values, "LIVE_REFRESH_SECONDS", 10)) * time.Second,
+		IdleRefreshInterval: time.Duration(getInt(values, "IDLE_REFRESH_SECONDS", 120)) * time.Second,
+		RefreshTimeout:      time.Duration(getInt(values, "REFRESH_TIMEOUT_SECONDS", 30)) * time.Second,
 		QuotaLimit:      effectiveQuotaLimit(tokens),
 		QuotaWindow:     time.Duration(getInt(values, "FOOTBALL_API_QUOTA_WINDOW_SECONDS", 60)) * time.Second,
 		AllowedOrigins:  parseList(getValue(values, "CORS_ALLOWED_ORIGINS", "*")),

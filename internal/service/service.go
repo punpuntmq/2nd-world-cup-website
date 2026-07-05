@@ -15,15 +15,17 @@ type FootballClient interface {
 }
 
 type Options struct {
-	RefreshInterval time.Duration
-	Quota           store.QuotaManager
+	LiveRefreshInterval time.Duration
+	IdleRefreshInterval time.Duration
+	Quota               store.QuotaManager
 }
 
 type WorldCupService struct {
 	client          FootballClient
-	store           *store.MemoryStore
-	refreshInterval time.Duration
-	quota           store.QuotaManager
+	store               *store.MemoryStore
+	liveRefreshInterval time.Duration
+	idleRefreshInterval time.Duration
+	quota               store.QuotaManager
 
 	mu         sync.Mutex
 	refreshing bool
@@ -34,18 +36,23 @@ type WorldCupService struct {
 }
 
 func NewWorldCupService(client FootballClient, snapshotStore *store.MemoryStore, options Options) *WorldCupService {
-	refreshInterval := options.RefreshInterval
-	if refreshInterval <= 0 {
-		refreshInterval = 30 * time.Second
+	liveInterval := options.LiveRefreshInterval
+	if liveInterval <= 0 {
+		liveInterval = 10 * time.Second
+	}
+	idleInterval := options.IdleRefreshInterval
+	if idleInterval <= 0 {
+		idleInterval = 120 * time.Second
 	}
 	if options.Quota == nil {
 		panic("service quota manager is required")
 	}
 	return &WorldCupService{
-		client:          client,
-		store:           snapshotStore,
-		refreshInterval: refreshInterval,
-		quota:           options.Quota,
+		client:              client,
+		store:               snapshotStore,
+		liveRefreshInterval: liveInterval,
+		idleRefreshInterval: idleInterval,
+		quota:               options.Quota,
 	}
 }
 
@@ -75,7 +82,7 @@ func (s *WorldCupService) State() ViewState {
 	if !cachedAt.IsZero() && cachedAt.Equal(snapshot.Raw.FetchedAt) {
 		view = cached
 	} else {
-		view = MapViewState(snapshot.Raw, s.refreshInterval)
+		view = MapViewState(snapshot.Raw, s.idleRefreshInterval)
 		s.cachedViewMu.Lock()
 		s.cachedView = view
 		s.cachedViewAt = snapshot.Raw.FetchedAt
@@ -115,8 +122,8 @@ func (s *WorldCupService) Matches() MatchesView {
 	}
 }
 
-func (s *WorldCupService) RefreshInterval() time.Duration {
-	return s.refreshInterval
+func (s *WorldCupService) RefreshIntervals() (live, idle time.Duration) {
+	return s.liveRefreshInterval, s.idleRefreshInterval
 }
 
 func (s *WorldCupService) refresh(ctx context.Context, kind RequestKind) (bool, error) {
@@ -161,7 +168,7 @@ func (s *WorldCupService) refresh(ctx context.Context, kind RequestKind) (bool, 
 	s.cachedViewMu.RUnlock()
 
 	if firstRun || changed {
-		view := MapViewState(saved, s.refreshInterval)
+		view := MapViewState(saved, s.idleRefreshInterval)
 		s.cachedViewMu.Lock()
 		s.cachedView = view
 		s.cachedViewAt = saved.FetchedAt
@@ -198,7 +205,7 @@ func (s *WorldCupService) applyRefreshMeta(view *ViewState, meta store.RefreshMe
 	view.Meta.NextAllowedRefreshAt = formatTime(meta.NextAllowedRefreshAt)
 	view.Meta.LastRefreshAt = formatTime(meta.LastRefreshAt)
 	view.Meta.LastError = meta.LastError
-	view.Meta.IsStale = isStale(meta.LastRefreshAt, now, s.refreshInterval)
+	view.Meta.IsStale = isStale(meta.LastRefreshAt, now, s.idleRefreshInterval)
 }
 
 func isStale(lastRefreshAt time.Time, now time.Time, interval time.Duration) bool {

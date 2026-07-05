@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-
 type ClientOptions struct {
 	BaseURL         string
 	Token           []string
@@ -29,8 +28,6 @@ type Client struct {
 	token_use       string
 	mu              sync.Mutex
 }
-
-
 
 func (c *Client) rotateToken() {
 	c.mu.Lock()
@@ -109,11 +106,9 @@ func (c *Client) Fetch(ctx context.Context, requests []Request) (RawState, error
 			return RawState{}, err
 		}
 	}
-	if err == nil {
-		raw.FetchedAt = time.Now().UTC()
-		if raw.Source == "" {
-			raw.Source = "football-data"
-		}
+	raw.FetchedAt = time.Now().UTC()
+	if raw.Source == "" {
+		raw.Source = "football-data"
 	}
 	return raw, err
 }
@@ -128,7 +123,6 @@ func (c *Client) tryRequest(ctx context.Context, requestURL string, target inter
 	if token != "" {
 		req.Header.Set("X-Auth-Token", token)
 	}
-
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
