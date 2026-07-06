@@ -9,7 +9,6 @@ Không có database, Redis, queue hay polling định kỳ từ frontend.
 ```mermaid
 flowchart TD
     API["Football-Data API v4"] --> Client["internal/football client"]
-    Fake["fake-data/*.json"] --> Client
     Client --> Service["internal/service refresh + view state"]
     Service --> Store["internal/store in-memory raw snapshot"]
     Service --> Scheduler["internal/scheduler refresh worker"]
@@ -35,13 +34,12 @@ internal/sse/               # SSE hub, clients, heartbeat, broadcast
 internal/scheduler/         # Periodic refresh worker
 frontend/                   # React/Vite client
 web/                        # Production frontend build served by Gin
-fake-data/                  # Offline development data
 ```
 
 ## Runtime Flow
 
 1. Server starts, loads env config, performs an initial refresh.
-2. Scheduler refreshes data every `REFRESH_SECONDS`.
+2. Scheduler refreshes data based on `LIVE_REFRESH_SECONDS` or `IDLE_REFRESH_SECONDS` intervals.
 3. Service compares raw state excluding fetch timestamps.
 4. If match/team/competition data changed, server broadcasts one `state` SSE event with the full snapshot.
 5. React fetches `/api/state` on mount, opens `/api/events`, and updates UI from SSE events.
@@ -57,7 +55,6 @@ fake-data/                  # Offline development data
 | `GET` | `/api/team/:id` | Team detail fallback/debug |
 | `GET` | `/api/match/:id` | Match detail fallback/debug |
 | `GET` | `/api/matches` | Match lists fallback/debug |
-| `POST` | `/api/refresh` | Manual refresh/debug endpoint |
 
 `/healthz` is kept as a compatibility healthcheck alias.
 
@@ -71,12 +68,17 @@ FOOTBALL_DATA_TOKEN=your_token_here
 FOOTBALL_DATA_COMPETITION=WC
 FOOTBALL_DATA_SEASON=2026
 PORT=8080
-REFRESH_SECONDS=30
+LIVE_REFRESH_SECONDS=10
+IDLE_REFRESH_SECONDS=120
 REFRESH_TIMEOUT_SECONDS=30
-FOOTBALL_API_QUOTA_WINDOW_SECONDS=60
-USE_FAKE_DATA=false
+REFRESH_TIMEOUT_BUFFER_MS=500
 CORS_ALLOWED_ORIGINS=*
 ```
+
+- `LIVE_REFRESH_SECONDS`: Fast refresh interval when matches are live (default 10s).
+- `IDLE_REFRESH_SECONDS`: Slow refresh interval when no matches are live (default 120s).
+- `REFRESH_TIMEOUT_SECONDS`: Hard timeout for upstream API fetch (default 30s).
+- `REFRESH_TIMEOUT_BUFFER_MS`: Headroom buffer to ensure timeout fires before the next tick (default 500ms).
 
 Frontend build-time config:
 
@@ -106,11 +108,6 @@ Run the backend:
 go run ./cmd/server
 ```
 
-For offline development, set:
-
-```env
-USE_FAKE_DATA=true
-```
 
 ## Production Build
 
@@ -130,7 +127,6 @@ Deploy the binary together with:
 
 ```text
 web/
-fake-data/              # optional, useful for fallback/offline mode
 token.env               # optional; prefer host env vars for secrets
 ```
 

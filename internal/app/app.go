@@ -37,7 +37,7 @@ func New(cfg config.Config) *App {
 		Quota:               quota,
 	})
 	hub := sse.NewHub()
-	refreshScheduler := scheduler.New(worldCupService, hub, cfg.LiveRefreshInterval, cfg.IdleRefreshInterval)
+	refreshScheduler := scheduler.New(worldCupService, hub, cfg.LiveRefreshInterval, cfg.IdleRefreshInterval, cfg.RefreshTimeout, cfg.RefreshTimeoutBuffer)
 	httpHandler := handler.New(cfg, worldCupService, hub)
 
 	return &App{
