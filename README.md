@@ -1,114 +1,140 @@
 # World Cup Realtime Dashboard
 
-Website Go + HTML/CSS/JS hien thi lich dau, tran hien tai, doi bong, cau thu, san van dong va bang xep hang World Cup tu football-data API. He thong khong dung database; tat ca du lieu sau khi fetch chi nam trong RAM.
+Dashboard World Cup realtime với backend Go/Gin và frontend React/Vite. Backend là nguồn trạng thái trung tâm: dữ liệu được fetch từ Football-Data API hoặc `fake-data`, giữ snapshot runtime trong RAM, build view state, rồi đẩy cập nhật tới browser qua Server-Sent Events (SSE). Frontend chỉ fetch snapshot ban đầu, subscribe SSE và render.
 
-## Bo cuc UI
+Không có database, Redis, queue hay polling định kỳ từ frontend.
 
-```text
-+--------------------------------------------------------------------------------+
-| [WC logo]                                      API/FAKE | last update | refresh |
-+----------------------+----------------------------------+----------------------+
-| Cot trai             | Trung tam tren                   | Cot phai             |
-| - Danh sach doi      | - Tran dang dien ra / tran tiep  | - Bang xep hang      |
-| - Chon doi de xem    | - Doi nha, doi khach, ti so      | - Tab tung bang      |
-|   chi tiet           | - Trang thai, gio, san           | - P/W/D/L/GD/Pts     |
-|                      +----------------------------------+                      |
-|                      | Trung tam giua                   |                      |
-|                      | - Trang thai noi bat             |                      |
-|                      | - Chi tiet doi dang chon         |                      |
-|                      +----------------------------------+                      |
-|                      | Trung tam duoi                   |                      |
-|                      | - Upcoming truoc                 |                      |
-|                      | - Finished nam cuoi              |                      |
-|                      | - Postponed/paused/cancel rieng  |                      |
-+----------------------+----------------------------------+----------------------+
-```
-
-## Luong du lieu
+## Architecture
 
 ```mermaid
-flowchart LR
-  A["football-data API v4"] --> B["Go Fetcher"]
-  F["fake-data/*.json"] --> B
-  T["token.env chi doc"] --> B
-  B --> C["RawStore trong RAM"]
-  C --> D["ViewStore trong RAM"]
-  D --> E["/api/state JSON"]
-  E --> U["Frontend dashboard"]
-  R["Ticker 45s hoac POST /api/refresh"] --> B
+flowchart TD
+    API["Football-Data API v4"] --> Client["internal/football client"]
+    Client --> Service["internal/service refresh + view state"]
+    Service --> Store["internal/store in-memory raw snapshot"]
+    Service --> Scheduler["internal/scheduler refresh worker"]
+    Scheduler --> Hub["internal/sse hub"]
+    Store --> Service
+    Service --> REST["Gin REST handlers"]
+    Hub --> SSE["GET /api/events"]
+    REST --> React["React frontend"]
+    SSE --> React
 ```
 
-## Lop du lieu
-
-- `RawStore`: giu response gan voi football-data gom `MatchesResponse`, `TeamsResponse`, `StandingsResponse`.
-- `ViewStore`: du lieu da bien doi cho UI gom `teams`, `currentMatch`, `nextMatch`, `upcomingMatches`, `finishedMatches`, `specialMatches`, `standings`.
-- Moi lan refresh, server thay the snapshot RAM bang mot snapshot moi. Khong ghi xuong database, khong giu lai du lieu sau khi restart.
-
-## Quy tac sap xep tran dau
-
-- `IN_PLAY`, `EXTRA_TIME`, `PENALTY_SHOOTOUT`: dua len khu vuc noi bat nhat.
-- `SCHEDULED`, `TIMED`: sap xep theo thoi gian tang dan va hien truoc trong lich.
-- `FINISHED`, `AWARDED`: day xuong cuoi danh sach chinh.
-- `PAUSED`, `SUSPENDED`, `POSTPONED`, `CANCELLED`: tach rieng trong nhom dac biet.
-
-## Cau truc thu muc
+## Project Layout
 
 ```text
-.
-|-- main.go
-|-- token.env
-|-- token.env.example
-|-- fake-data/
-|   |-- matches.json
-|   |-- standings.json
-|   `-- teams.json
-|-- internal/
-|   |-- config/
-|   |-- football/
-|   |-- server/
-|   `-- store/
-`-- web/
-    |-- index.html
-    |-- styles.css
-    `-- app.js
+cmd/server/main.go          # Entrypoint: load config, start app, graceful shutdown
+internal/app/               # Dependency wiring
+internal/router/            # Gin routes, CORS, static frontend fallback
+internal/handler/           # HTTP handlers
+internal/service/           # Fetch orchestration, view-state business logic
+internal/store/             # Thread-safe in-memory raw snapshot + refresh metadata
+internal/football/          # Football-Data API/fake-data client and raw API types
+internal/sse/               # SSE hub, clients, heartbeat, broadcast
+internal/scheduler/         # Periodic refresh worker
+frontend/                   # React/Vite client
+web/                        # Production frontend build served by Gin
 ```
 
-## Chay website
+## Runtime Flow
 
-```powershell
-cd "D:\2nd world cup website"
-go run .
-```
+1. Server starts, loads env config, performs an initial refresh.
+2. Scheduler refreshes data based on `LIVE_REFRESH_SECONDS` or `IDLE_REFRESH_SECONDS` intervals.
+3. Service compares raw state excluding fetch timestamps.
+4. If match/team/competition data changed, server broadcasts one `state` SSE event with the full snapshot.
+5. React fetches `/api/state` on mount, opens `/api/events`, and updates UI from SSE events.
+6. If SSE reconnects, React fetches `/api/state` again as fallback.
 
-Mo trinh duyet tai:
+## API
 
-```text
-http://localhost:8080
-```
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Healthcheck |
+| `GET` | `/api/state` | Current full view-state snapshot |
+| `GET` | `/api/events` | SSE stream, event name `state`, heartbeat comments |
+| `GET` | `/api/team/:id` | Team detail fallback/debug |
+| `GET` | `/api/match/:id` | Match detail fallback/debug |
+| `GET` | `/api/matches` | Match lists fallback/debug |
 
-Neu API khong kha dung hoac token chua hop le, server tu dong dung `fake-data/` de giao dien van mo phong dung response va luong cap nhat.
+`/healthz` is kept as a compatibility healthcheck alias.
 
-## Cau hinh token
+## Environment
 
-`token.env` nam cung cap voi `main.go` va chi duoc server doc luc khoi dong. File nay khong bi sua boi code.
+The server reads OS environment variables first, then `token.env` when present.
 
 ```env
+FOOTBALL_API_BASE_URL=https://api.football-data.org/v4
 FOOTBALL_DATA_TOKEN=your_token_here
 FOOTBALL_DATA_COMPETITION=WC
 FOOTBALL_DATA_SEASON=2026
 PORT=8080
-REFRESH_SECONDS=45
-USE_FAKE_DATA=false
+LIVE_REFRESH_SECONDS=10
+IDLE_REFRESH_SECONDS=120
+REFRESH_TIMEOUT_SECONDS=30
+REFRESH_TIMEOUT_BUFFER_MS=500
+CORS_ALLOWED_ORIGINS=*
 ```
 
-Dat `USE_FAKE_DATA=true` khi muon demo offline bang fake JSON rieng.
+- `LIVE_REFRESH_SECONDS`: Fast refresh interval when matches are live (default 10s).
+- `IDLE_REFRESH_SECONDS`: Slow refresh interval when no matches are live (default 120s).
+- `REFRESH_TIMEOUT_SECONDS`: Hard timeout for upstream API fetch (default 30s).
+- `REFRESH_TIMEOUT_BUFFER_MS`: Headroom buffer to ensure timeout fires before the next tick (default 500ms).
 
-## Endpoint noi bo
+Frontend build-time config:
 
-- `GET /api/state`: tra ve view model hien tai trong RAM.
-- `POST /api/refresh`: ep server fetch lai ngay.
-- `GET /healthz`: health check don gian.
+```env
+VITE_API_BASE_URL=
+```
 
-## Nguon API
+Leave `VITE_API_BASE_URL` empty when Gin serves the static build from the same origin. Set it to the backend origin, for example `https://api.example.com`, when deploying the frontend separately.
 
-Thiet ke endpoint dua tren tai lieu football-data v4: <https://docs.football-data.org/general/v4/resources.html>
+## Local Development
+
+Install frontend dependencies when needed:
+
+```bash
+npm install
+```
+
+Run the Vite dev server:
+
+```bash
+npm run dev
+```
+
+Run the backend:
+
+```bash
+go run ./cmd/server
+```
+
+
+## Production Build
+
+Build React into `web/`:
+
+```bash
+npm run build
+```
+
+Build the backend binary:
+
+```bash
+go build -o bin/worldcup-server ./cmd/server
+```
+
+Deploy the binary together with:
+
+```text
+web/
+token.env               # optional; prefer host env vars for secrets
+```
+
+Run:
+
+```bash
+PORT=8080 ./bin/worldcup-server
+```
+
+The backend serves the static frontend from `web/` and exposes the API/SSE endpoints from the same process.
+

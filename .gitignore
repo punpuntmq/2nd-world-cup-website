@@ -1,4 +1,6 @@
 token.env
+node_modules/
+bin/
 dist/
 tmp/
 *.exe
