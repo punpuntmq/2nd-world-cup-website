@@ -1,7 +1,5 @@
 package service
 
-
-
 type ViewState struct {
 	Meta  MetaView   `json:"meta"`
 	Teams []TeamView `json:"teams"`
@@ -34,8 +32,6 @@ type MetaView struct {
 	LastRefreshAt        string `json:"lastRefreshAt,omitempty"`
 	IsStale              bool   `json:"isStale"`
 }
-
-
 
 type TeamView struct {
 	ID        int          `json:"id"`
@@ -82,6 +78,7 @@ type MatchView struct {
 	Group        string       `json:"group"`
 	Matchday     string       `json:"matchday"`
 	SortTimeUnix int64        `json:"-"`
+	HasKickoff   bool         `json:"-"`
 }
 
 type MatchesView struct {

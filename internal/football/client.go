@@ -25,7 +25,7 @@ type Client struct {
 	competitionCode string
 	season          string
 	httpClient      *http.Client
-	token_use       string
+	activeToken     string
 	mu              sync.Mutex
 }
 
@@ -34,8 +34,8 @@ func (c *Client) rotateToken() {
 	defer c.mu.Unlock()
 
 	for i, token := range c.tokens {
-		if token == c.token_use {
-			c.token_use = c.tokens[(i+1)%len(c.tokens)]
+		if token == c.activeToken {
+			c.activeToken = c.tokens[(i+1)%len(c.tokens)]
 			return
 		}
 	}
@@ -71,7 +71,7 @@ func NewClient(options ClientOptions) *Client {
 		httpClient: &http.Client{
 			Timeout: 12 * time.Second,
 		},
-		token_use: tokenUse,
+		activeToken: tokenUse,
 	}
 }
 
@@ -93,10 +93,7 @@ type Request struct {
 }
 
 func (c *Client) Fetch(ctx context.Context, requests []Request) (RawState, error) {
-	var (
-		raw RawState
-		err error
-	)
+	var raw RawState
 	for _, req := range requests {
 		if err := c.callAPI(
 			ctx,
@@ -110,7 +107,7 @@ func (c *Client) Fetch(ctx context.Context, requests []Request) (RawState, error
 	if raw.Source == "" {
 		raw.Source = "football-data"
 	}
-	return raw, err
+	return raw, nil
 }
 
 func (c *Client) tryRequest(ctx context.Context, requestURL string, target interface{}, token string) error {
@@ -146,9 +143,13 @@ func (c *Client) callAPI(ctx context.Context, endpoint string, target interface{
 	endpoint = strings.TrimPrefix(endpoint, "/")
 	requestURL := c.baseURL + "/" + endpoint
 
+	if len(c.tokens) == 0 {
+		return c.tryRequest(ctx, requestURL, target, "")
+	}
+
 	for i := 0; i < len(c.tokens); i++ {
 		c.mu.Lock()
-		token := c.token_use
+		token := c.activeToken
 		c.mu.Unlock()
 
 		result := c.tryRequest(ctx, requestURL, target, token)

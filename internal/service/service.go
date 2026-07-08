@@ -21,18 +21,21 @@ type Options struct {
 }
 
 type WorldCupService struct {
-	client          FootballClient
+	client              FootballClient
 	store               *store.MemoryStore
 	liveRefreshInterval time.Duration
 	idleRefreshInterval time.Duration
 	quota               store.QuotaManager
+	mapViewState        func(football.RawState, time.Duration) ViewState
 
 	mu         sync.Mutex
 	refreshing bool
 
-	cachedView   ViewState
-	cachedViewAt time.Time
-	cachedViewMu sync.RWMutex
+	cachedView           ViewState
+	contentGeneration    uint64
+	cachedViewGeneration uint64
+	hasCachedView        bool
+	cachedViewMu         sync.RWMutex
 }
 
 func NewWorldCupService(client FootballClient, snapshotStore *store.MemoryStore, options Options) *WorldCupService {
@@ -53,6 +56,7 @@ func NewWorldCupService(client FootballClient, snapshotStore *store.MemoryStore,
 		liveRefreshInterval: liveInterval,
 		idleRefreshInterval: idleInterval,
 		quota:               options.Quota,
+		mapViewState:        MapViewState,
 	}
 }
 
@@ -71,24 +75,28 @@ func (s *WorldCupService) Refresh(ctx context.Context) (bool, error) {
 func (s *WorldCupService) State() ViewState {
 	now := time.Now().UTC()
 	snapshot := s.store.Snapshot(now)
-	
+
 	s.cachedViewMu.RLock()
-	cached := s.cachedView
-	cachedAt := s.cachedViewAt
+	if s.hasCachedView && s.cachedViewGeneration == s.contentGeneration {
+		view := s.cachedView
+		s.cachedViewMu.RUnlock()
+		s.applySnapshotMeta(&view, snapshot.Raw)
+		s.applyRefreshMeta(&view, snapshot.Refresh, now)
+		return view
+	}
 	s.cachedViewMu.RUnlock()
 
-	var view ViewState
-	// If cached view is from the same refresh cycle (fetchedAt matches), use it
-	if !cachedAt.IsZero() && cachedAt.Equal(snapshot.Raw.FetchedAt) {
-		view = cached
-	} else {
-		view = MapViewState(snapshot.Raw, s.idleRefreshInterval)
-		s.cachedViewMu.Lock()
+	s.cachedViewMu.Lock()
+	view := s.cachedView
+	if !s.hasCachedView || s.cachedViewGeneration != s.contentGeneration {
+		view = s.mapViewState(snapshot.Raw, s.idleRefreshInterval)
 		s.cachedView = view
-		s.cachedViewAt = snapshot.Raw.FetchedAt
-		s.cachedViewMu.Unlock()
+		s.cachedViewGeneration = s.contentGeneration
+		s.hasCachedView = true
 	}
+	s.cachedViewMu.Unlock()
 
+	s.applySnapshotMeta(&view, snapshot.Raw)
 	s.applyRefreshMeta(&view, snapshot.Refresh, now)
 	return view
 }
@@ -162,19 +170,18 @@ func (s *WorldCupService) refresh(ctx context.Context, kind RequestKind) (bool, 
 
 	saved := s.store.Save(raw, now)
 	changed := rawChanged(before, saved)
-	
-	s.cachedViewMu.RLock()
-	firstRun := s.cachedViewAt.IsZero()
-	s.cachedViewMu.RUnlock()
 
+	s.cachedViewMu.Lock()
+	firstRun := !s.hasCachedView
 	if firstRun || changed {
-		view := MapViewState(saved, s.idleRefreshInterval)
-		s.cachedViewMu.Lock()
+		s.contentGeneration++
+		view := s.mapViewState(saved, s.idleRefreshInterval)
 		s.cachedView = view
-		s.cachedViewAt = saved.FetchedAt
-		s.cachedViewMu.Unlock()
+		s.cachedViewGeneration = s.contentGeneration
+		s.hasCachedView = true
 		changed = true
 	}
+	s.cachedViewMu.Unlock()
 
 	log.Printf("refresh succeeded: %d matches, %d teams, changed=%t", len(saved.Matches), len(saved.Teams), changed)
 	return changed, nil
@@ -206,6 +213,13 @@ func (s *WorldCupService) applyRefreshMeta(view *ViewState, meta store.RefreshMe
 	view.Meta.LastRefreshAt = formatTime(meta.LastRefreshAt)
 	view.Meta.LastError = meta.LastError
 	view.Meta.IsStale = isStale(meta.LastRefreshAt, now, s.idleRefreshInterval)
+}
+
+func (s *WorldCupService) applySnapshotMeta(view *ViewState, raw football.RawState) {
+	view.Meta.CompetitionName = competitionName(raw.Competition)
+	view.Meta.CompetitionEmblem = raw.Competition.Emblem
+	view.Meta.Source = sourceLabel(raw.Source)
+	view.Meta.FetchedAt = formatTime(raw.FetchedAt)
 }
 
 func isStale(lastRefreshAt time.Time, now time.Time, interval time.Duration) bool {

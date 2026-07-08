@@ -93,4 +93,3 @@ type Match struct {
 
 	Score Score `json:"score"`
 }
-

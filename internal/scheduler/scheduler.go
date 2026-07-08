@@ -1,23 +1,23 @@
 package scheduler
- 
+
 import (
 	"context"
 	"log"
 	"time"
- 
+
 	"worldcup-realtime/internal/service"
 	"worldcup-realtime/internal/sse"
 )
- 
+
 type Refresher interface {
 	Refresh(context.Context) (bool, error)
 	State() service.ViewState
 }
- 
+
 // minRefreshTimeout là sàn cứng để tránh config lỗi (buffer > interval)
 // làm timeout tính ra âm hoặc gần 0.
 const minRefreshTimeout = 1 * time.Second
- 
+
 type Scheduler struct {
 	service        Refresher
 	hub            *sse.Hub
@@ -26,7 +26,7 @@ type Scheduler struct {
 	refreshTimeout time.Duration
 	timeoutBuffer  time.Duration
 }
- 
+
 func New(svc Refresher, hub *sse.Hub, liveInterval, idleInterval, refreshTimeout, timeoutBuffer time.Duration) *Scheduler {
 	if liveInterval <= 0 {
 		liveInterval = 10 * time.Second
@@ -49,12 +49,12 @@ func New(svc Refresher, hub *sse.Hub, liveInterval, idleInterval, refreshTimeout
 		timeoutBuffer:  timeoutBuffer,
 	}
 }
- 
+
 func (s *Scheduler) Run(ctx context.Context) {
 	interval := s.idleInterval // start conservatively
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
- 
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -67,14 +67,14 @@ func (s *Scheduler) Run(ctx context.Context) {
 			if changed {
 				s.hub.BroadcastState(s.service.State())
 			}
- 
+
 			// Pick next interval based on live match count
 			interval = s.nextInterval()
 			timer.Reset(interval)
 		}
 	}
 }
- 
+
 // refreshOnce runs exactly one refresh, bounded by a timeout that always
 // leaves at least timeoutBuffer of headroom before the next scheduled tick.
 // This guarantees a single hanging/slow upstream call can never block the
@@ -89,13 +89,13 @@ func (s *Scheduler) refreshOnce(ctx context.Context, interval time.Duration) (bo
 	if timeout < minRefreshTimeout {
 		timeout = minRefreshTimeout
 	}
- 
+
 	fetchCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
- 
+
 	return s.service.Refresh(fetchCtx)
 }
- 
+
 // nextInterval returns liveInterval when matches are live, idleInterval otherwise.
 func (s *Scheduler) nextInterval() time.Duration {
 	state := s.service.State()

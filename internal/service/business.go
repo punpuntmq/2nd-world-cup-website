@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"worldcup-realtime/internal/football"
+	"worldcup-realtime/internal/timeutil"
 )
 
 const (
@@ -58,8 +59,6 @@ func BuildViewState(raw football.RawState, refreshInterval time.Duration) ViewSt
 		Standings:       standings,
 	}
 }
-
-
 
 func indexTeams(teams []football.Team) map[int]football.Team {
 	byID := make(map[int]football.Team, len(teams))
@@ -358,27 +357,32 @@ func buildMatches(matches []football.Match, teamByID map[int]football.Team, now 
 	}
 
 	sort.SliceStable(liveMatches, func(i, j int) bool {
-		return liveMatches[i].SortTimeUnix < liveMatches[j].SortTimeUnix
+		return matchTimeLess(liveMatches[i], liveMatches[j], false)
 	})
 	sortUpcoming(upcomingMatches, now)
 	sort.SliceStable(finishedMatches, func(i, j int) bool {
-		return finishedMatches[i].SortTimeUnix > finishedMatches[j].SortTimeUnix
+		return matchTimeLess(finishedMatches[i], finishedMatches[j], true)
 	})
 	sort.SliceStable(specialMatches, func(i, j int) bool {
-		return specialMatches[i].SortTimeUnix < specialMatches[j].SortTimeUnix
+		return matchTimeLess(specialMatches[i], specialMatches[j], false)
 	})
 	return liveMatches, upcomingMatches, finishedMatches, specialMatches
 }
 
 func mapMatch(match football.Match, teamByID map[int]football.Team, now time.Time) MatchView {
 	kickoff := kickoffTime(match)
+	hasKickoff := !kickoff.IsZero()
+	sortTimeUnix := int64(0)
+	if hasKickoff {
+		sortTimeUnix = kickoff.Unix()
+	}
 	statusGroup := statusGroup(match, now)
 	return MatchView{
 		ID:           match.ID,
 		HomeTeam:     miniFromMatchTeam(match.HomeTeam, teamByID),
 		AwayTeam:     miniFromMatchTeam(match.AwayTeam, teamByID),
-		HomeScore:    scoreText(match.Score.FullTime.Home, statusGroup),
-		AwayScore:    scoreText(match.Score.FullTime.Away, statusGroup),
+		HomeScore:    scoreText(match.Score.FullTime.Home),
+		AwayScore:    scoreText(match.Score.FullTime.Away),
 		Status:       strings.ToUpper(match.Status),
 		StatusLabel:  statusLabel(match, statusGroup, now),
 		StatusGroup:  statusGroup,
@@ -387,7 +391,8 @@ func mapMatch(match football.Match, teamByID map[int]football.Team, now time.Tim
 		Stage:        formatStage(match.Stage),
 		Group:        groupLabel(match),
 		Matchday:     matchdayLabel(match.Matchday),
-		SortTimeUnix: kickoff.Unix(),
+		SortTimeUnix: sortTimeUnix,
+		HasKickoff:   hasKickoff,
 	}
 }
 
@@ -539,7 +544,7 @@ func minuteLabel(match football.Match, statusGroup string, now time.Time) string
 	return strconv.Itoa(minutes) + "'"
 }
 
-func scoreText(score *int, statusGroup string) string {
+func scoreText(score *int) string {
 	if score == nil {
 		return "-"
 	}
@@ -586,19 +591,18 @@ func isMatchTimeActive(match football.Match, now time.Time) bool {
 }
 
 func kickoffTime(match football.Match) time.Time {
-	if strings.TrimSpace(match.UTCDate) == "" {
-		return time.Time{}
-	}
-	kickoff, err := time.Parse(time.RFC3339, match.UTCDate)
-	if err != nil {
-		return time.Time{}
-	}
-	return kickoff.UTC()
+	return timeutil.ParseRFC3339UTC(match.UTCDate)
 }
 
 func sortUpcoming(matches []MatchView, now time.Time) {
 	nowUnix := now.Unix()
 	sort.SliceStable(matches, func(i, j int) bool {
+		if matches[i].HasKickoff != matches[j].HasKickoff {
+			return matches[i].HasKickoff
+		}
+		if !matches[i].HasKickoff {
+			return matches[i].ID < matches[j].ID
+		}
 		aFuture := matches[i].SortTimeUnix >= nowUnix
 		bFuture := matches[j].SortTimeUnix >= nowUnix
 		if aFuture != bFuture {
@@ -609,6 +613,22 @@ func sortUpcoming(matches []MatchView, now time.Time) {
 		}
 		return matches[i].SortTimeUnix > matches[j].SortTimeUnix
 	})
+}
+
+func matchTimeLess(a, b MatchView, descending bool) bool {
+	if a.HasKickoff != b.HasKickoff {
+		return a.HasKickoff
+	}
+	if !a.HasKickoff {
+		return a.ID < b.ID
+	}
+	if a.SortTimeUnix == b.SortTimeUnix {
+		return a.ID < b.ID
+	}
+	if descending {
+		return a.SortTimeUnix > b.SortTimeUnix
+	}
+	return a.SortTimeUnix < b.SortTimeUnix
 }
 
 func copyMatchView(match MatchView) *MatchView {

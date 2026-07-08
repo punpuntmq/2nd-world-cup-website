@@ -4,6 +4,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"worldcup-realtime/internal/timeutil"
 )
 
 func MatchesByID(matches []Match) map[int]Match {
@@ -70,12 +72,5 @@ func matchSortPriority(status string) int {
 }
 
 func matchKickoffTime(match Match) time.Time {
-	if strings.TrimSpace(match.UTCDate) == "" {
-		return time.Time{}
-	}
-	kickoff, err := time.Parse(time.RFC3339, match.UTCDate)
-	if err != nil {
-		return time.Time{}
-	}
-	return kickoff.UTC()
+	return timeutil.ParseRFC3339UTC(match.UTCDate)
 }

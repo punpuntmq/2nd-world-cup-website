@@ -38,5 +38,3 @@ func (c *Client) competitionEndpoint(resource string) string {
 	values.Set("season", c.season)
 	return endpoint + "?" + values.Encode()
 }
-
-

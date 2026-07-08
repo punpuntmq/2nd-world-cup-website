@@ -90,7 +90,7 @@ func staticFallback(webDir string) gin.HandlerFunc {
 
 		cleanPath := strings.TrimPrefix(path.Clean(c.Request.URL.Path), "/")
 		if cleanPath == "." || cleanPath == "" {
-			c.File(filepath.Join(webDir, "index.html"))
+			serveIndex(c, webDir)
 			return
 		}
 
@@ -99,6 +99,11 @@ func staticFallback(webDir string) gin.HandlerFunc {
 			c.File(candidate)
 			return
 		}
-		c.File(filepath.Join(webDir, "index.html"))
+		serveIndex(c, webDir)
 	}
+}
+
+func serveIndex(c *gin.Context, webDir string) {
+	c.Header("Cache-Control", "no-cache")
+	c.File(filepath.Join(webDir, "index.html"))
 }

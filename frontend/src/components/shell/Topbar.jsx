@@ -1,7 +1,6 @@
 import { formatDateTime } from "../../utils/date.js";
 import {
   effectiveRefreshStatus,
-  isFuture,
   statusClass,
   statusLabel,
 } from "../../utils/status.js";

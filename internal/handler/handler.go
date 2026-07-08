@@ -44,7 +44,6 @@ func (h *Handler) Events(c *gin.Context) {
 	h.hub.ServeHTTP(c.Writer, c.Request, h.service.State())
 }
 
-
 func (h *Handler) Team(c *gin.Context) {
 	id, ok := parseID(c.Param("id"))
 	if !ok {
@@ -76,7 +75,6 @@ func (h *Handler) Match(c *gin.Context) {
 func (h *Handler) Matches(c *gin.Context) {
 	c.JSON(http.StatusOK, h.service.Matches())
 }
-
 
 func parseID(value string) (int, bool) {
 	id, err := strconv.Atoi(value)
